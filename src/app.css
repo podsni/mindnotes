@@ -59,9 +59,103 @@
   --bg-active: #e0e0e0;
   --accent: #007acc;
   --text-primary: #1e1e1e;
+  --border: #ddd;
   
   color: var(--text-color);
   background-color: var(--bg-color);
+}
+
+/* Typewriter Theme - Classic Paper Style */
+[data-theme="typewriter"] {
+  color-scheme: light;
+  
+  --bg-color: #f5f2e8;
+  --card-bg: #faf7f0;
+  --hover-bg: #efe9dd;
+  --text-color: #2a2419;
+  --text-secondary: #6b5d4f;
+  --border-color: #d4c5ad;
+  --primary-color: #8b4513;
+  --primary-hover: #6b3410;
+  --pinned-bg: #fff8dc;
+  
+  /* Font selector */
+  --bg-secondary: #ebe5d9;
+  --border-hover: #c4b59d;
+  --bg-active: #e0d5c4;
+  --accent: #8b4513;
+  --text-primary: #2a2419;
+  --border: #d4c5ad;
+  
+  font-family: 'Courier Prime', 'American Typewriter', 'Courier New', monospace;
+  
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+/* Typewriter specific effects */
+[data-theme="typewriter"] body {
+  background-image: 
+    repeating-linear-gradient(
+      transparent,
+      transparent 31px,
+      #d4c5ad 31px,
+      #d4c5ad 32px
+    );
+  background-size: 100% 32px;
+}
+
+[data-theme="typewriter"] .content-textarea,
+[data-theme="typewriter"] .editor-title {
+  line-height: 32px !important;
+}
+
+/* Minimal Modern Theme - Frosted Glass */
+[data-theme="minimal"] {
+  color-scheme: light;
+  
+  --bg-color: #fafafa;
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --hover-bg: rgba(245, 245, 245, 0.9);
+  --text-color: #1a1a1a;
+  --text-secondary: #6b7280;
+  --border-color: rgba(0, 0, 0, 0.06);
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --pinned-bg: rgba(59, 130, 246, 0.05);
+  
+  /* Font selector */
+  --bg-secondary: rgba(249, 250, 251, 0.9);
+  --border-hover: rgba(0, 0, 0, 0.12);
+  --bg-active: rgba(243, 244, 246, 0.95);
+  --accent: #3b82f6;
+  --text-primary: #1a1a1a;
+  --border: rgba(0, 0, 0, 0.06);
+  
+  font-family: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+  
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+/* Minimal theme backdrop blur effect */
+[data-theme="minimal"] .sidebar {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="minimal"] .card-bg,
+[data-theme="minimal"] .note-item {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Minimal theme thin icons */
+[data-theme="minimal"] svg {
+  stroke-width: 1.5;
 }
 
 * {
@@ -98,6 +192,17 @@ button:focus,
 button:focus-visible {
   outline: 2px solid #007acc;
   outline-offset: 2px;
+}
+
+/* Theme changing animation */
+#app.theme-changing {
+  animation: themeTransition 0.4s ease;
+}
+
+@keyframes themeTransition {
+  0% { opacity: 1; }
+  50% { opacity: 0.85; }
+  100% { opacity: 1; }
 }
 
 /* Smooth scrollbars */

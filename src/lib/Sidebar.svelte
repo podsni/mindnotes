@@ -4,6 +4,7 @@
   import type { Note } from './db'
   import VirtualList from 'svelte-virtual-list'
   import FontSelector from './FontSelector.svelte'
+  import ThemeSelector from './ThemeSelector.svelte'
 
   let searchInput = $state('')
   let touchStartX = $state(0)
@@ -116,14 +117,6 @@
   <div class="sidebar-header">
     <h1>📝 MindNote</h1>
     <div class="header-actions">
-      <button 
-        onclick={() => uiStore.toggleTheme()} 
-        class="btn-icon" 
-        title="Toggle theme"
-        aria-label="Toggle theme"
-      >
-        {uiStore.theme === 'dark' ? '☀️' : '🌙'}
-      </button>
       <button onclick={handleNewNote} class="btn-new">
         + New
       </button>
@@ -145,7 +138,11 @@
     </label>
   </div>
 
-  <div class="font-settings">
+  <div class="settings-section">
+    <ThemeSelector />
+  </div>
+
+  <div class="settings-section">
     <FontSelector />
   </div>
 
@@ -252,12 +249,26 @@
     flex-direction: column;
     overflow: hidden;
     transition: transform 0.3s ease, width 0.3s ease, background-color 0.3s;
+    position: relative;
   }
 
-  /* Desktop: Static sidebar with toggle */
+  /* Desktop: Collapsible sidebar */
   @media (min-width: 1025px) {
     .sidebar {
       width: 280px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 1000;
+      transform: translateX(0);
+    }
+
+    .sidebar:not(.open) {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
     }
   }
 
@@ -305,21 +316,7 @@
     align-items: center;
   }
 
-  .btn-icon {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    padding: 0.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.2s;
-  }
 
-  .btn-icon:hover {
-    background: var(--hover-bg);
-    border-color: var(--primary-color);
-  }
 
   .btn-new {
     background: var(--primary-color);
@@ -361,7 +358,7 @@
     border-color: var(--primary-color);
   }
 
-  .font-settings {
+  .settings-section {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--border-color);
   }

@@ -152,20 +152,24 @@ class NotesStore {
 class UIStore {
   sidebarOpen: boolean = $state(true)
   isMobile: boolean = $state(false)
-  theme: 'dark' | 'light' = $state('dark')
+  theme: 'dark' | 'light' | 'typewriter' | 'minimal' = $state('dark')
   font: string = $state('courier-prime')
   fontSize: number = $state(16)
 
   toggleSidebar() {
     this.sidebarOpen = !this.sidebarOpen
+    // Save sidebar state to localStorage
+    localStorage.setItem('mindnote-sidebar', this.sidebarOpen.toString())
   }
 
   closeSidebar() {
     this.sidebarOpen = false
+    localStorage.setItem('mindnote-sidebar', 'false')
   }
 
   openSidebar() {
     this.sidebarOpen = true
+    localStorage.setItem('mindnote-sidebar', 'true')
   }
 
   setMobile(mobile: boolean) {
@@ -173,16 +177,30 @@ class UIStore {
     // Auto-close sidebar on mobile by default
     if (mobile) {
       this.sidebarOpen = false
+    } else {
+      // Load saved sidebar state for desktop
+      const savedSidebar = localStorage.getItem('mindnote-sidebar')
+      if (savedSidebar !== null) {
+        this.sidebarOpen = savedSidebar === 'true'
+      }
     }
   }
 
-  // Toggle theme
-  toggleTheme() {
-    this.theme = this.theme === 'dark' ? 'light' : 'dark'
+  // Set theme
+  setTheme(theme: 'dark' | 'light' | 'typewriter' | 'minimal') {
+    this.theme = theme
     // Save to localStorage
     localStorage.setItem('mindnote-theme', this.theme)
     // Apply theme to document
     this.applyTheme()
+  }
+
+  // Toggle theme (cycle through all themes)
+  toggleTheme() {
+    const themes: Array<'dark' | 'light' | 'typewriter' | 'minimal'> = ['dark', 'light', 'typewriter', 'minimal']
+    const currentIndex = themes.indexOf(this.theme)
+    const nextIndex = (currentIndex + 1) % themes.length
+    this.setTheme(themes[nextIndex])
   }
 
   // Apply theme
@@ -192,7 +210,7 @@ class UIStore {
 
   // Load theme from localStorage
   loadTheme() {
-    const savedTheme = localStorage.getItem('mindnote-theme') as 'dark' | 'light' | null
+    const savedTheme = localStorage.getItem('mindnote-theme') as 'dark' | 'light' | 'typewriter' | 'minimal' | null
     if (savedTheme) {
       this.theme = savedTheme
     }

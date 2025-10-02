@@ -208,10 +208,18 @@
 
   .editor-header {
     padding: 1.5rem 2rem;
+    padding-left: 3.5rem; /* Add space for toggle button */
     border-bottom: 1px solid var(--border-color);
     display: flex;
     gap: 1rem;
     align-items: center;
+  }
+
+  /* On mobile, reset padding */
+  @media (max-width: 1024px) {
+    .editor-header {
+      padding-left: 2rem;
+    }
   }
 
   .header-actions {

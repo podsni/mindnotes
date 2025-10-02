@@ -48,6 +48,14 @@
     justify-content: center;
     background: var(--bg-color);
     transition: background-color 0.3s;
+    padding-left: 3.5rem; /* Space for toggle button */
+  }
+
+  /* On mobile, reset padding */
+  @media (max-width: 1024px) {
+    .home {
+      padding-left: 0;
+    }
   }
 
   .welcome {

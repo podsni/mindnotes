@@ -58,18 +58,30 @@
 </script>
 
 <div class="app">
-  <!-- Toggle Button (burger menu) -->
+  <Sidebar />
+  
+  <!-- Toggle Button (compact & smart positioning) -->
   <button 
     class="sidebar-toggle" 
-    class:hidden={uiStore.sidebarOpen && !uiStore.isMobile}
+    class:sidebar-open={uiStore.sidebarOpen && !uiStore.isMobile}
     onclick={() => uiStore.toggleSidebar()}
     aria-label="Toggle sidebar"
+    title={uiStore.sidebarOpen ? 'Close sidebar (Ctrl+B)' : 'Open sidebar (Ctrl+B)'}
   >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="3" y1="6" x2="21" y2="6"></line>
-      <line x1="3" y1="12" x2="21" y2="12"></line>
-      <line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
+    {#if uiStore.sidebarOpen}
+      <!-- Close icon when sidebar is open -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    {:else}
+      <!-- Menu icon when sidebar is closed -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="4" y1="6" x2="20" y2="6"></line>
+        <line x1="4" y1="12" x2="20" y2="12"></line>
+        <line x1="4" y1="18" x2="20" y2="18"></line>
+      </svg>
+    {/if}
   </button>
 
   <!-- Backdrop for mobile -->
@@ -83,10 +95,8 @@
       aria-label="Close sidebar"
     ></div>
   {/if}
-
-  <Sidebar />
   
-  <main class="main-content">
+  <main class="main-content" class:sidebar-open={uiStore.sidebarOpen && !uiStore.isMobile}>
     {#if currentRoute.path === '/'}
       <Home />
     {:else if currentRoute.path === '/note/:id' && currentRoute.params.id}
@@ -126,34 +136,77 @@
     flex: 1;
     display: flex;
     overflow: hidden;
+    transition: margin-left 0.3s ease;
   }
 
-  /* Sidebar Toggle Button */
+  /* Add margin when sidebar is open on desktop */
+  @media (min-width: 1025px) {
+    .main-content.sidebar-open {
+      margin-left: 280px;
+    }
+  }
+
+  /* Sidebar Toggle Button - Compact & Smart */
   .sidebar-toggle {
     position: fixed;
-    top: 1rem;
-    left: 1rem;
+    top: 0.75rem;
     z-index: 1001;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 0.5rem;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     cursor: pointer;
     color: var(--text-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    opacity: 0.85;
+  }
+
+  /* Position changes based on sidebar state on desktop */
+  @media (min-width: 1025px) {
+    .sidebar-toggle {
+      left: 0.75rem;
+    }
+    
+    .sidebar-toggle.sidebar-open {
+      left: calc(280px + 0.5rem);
+    }
+  }
+
+  /* On mobile/tablet always at left */
+  @media (max-width: 1024px) {
+    .sidebar-toggle {
+      left: 0.75rem;
+    }
   }
 
   .sidebar-toggle:hover {
     background: var(--hover-bg);
     border-color: var(--primary-color);
+    transform: scale(1.08);
+    opacity: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
 
-  .sidebar-toggle.hidden {
-    opacity: 0;
-    pointer-events: none;
+  .sidebar-toggle:active {
+    transform: scale(0.92);
+  }
+
+  /* Subtle pulsing animation when sidebar is closed on desktop */
+  @media (min-width: 1025px) {
+    .sidebar-toggle:not(.sidebar-open) {
+      animation: subtlePulse 3s ease-in-out infinite;
+    }
+  }
+
+  @keyframes subtlePulse {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
   }
 
   /* Backdrop for mobile */
@@ -177,10 +230,10 @@
     }
   }
 
-  /* Desktop (>1024px) - Static sidebar */
+  /* Desktop (>1024px) - Show toggle button always */
   @media (min-width: 1025px) {
     .sidebar-toggle {
-      display: none;
+      display: flex;
     }
   }
 
@@ -219,7 +272,7 @@
     transition: all 0.3s;
   }
 
-  .fab:hover {
+    .fab:hover {
     background: var(--primary-hover);
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 122, 204, 0.6);
@@ -227,5 +280,15 @@
 
   .fab:active {
     transform: scale(0.95);
+  }
+
+  /* Theme changing animation */
+  :global(.app.theme-changing) {
+    animation: themeTransition 0.4s ease;
+  }
+
+  @keyframes themeTransition {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
   }
 </style>
