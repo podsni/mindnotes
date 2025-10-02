@@ -26,6 +26,30 @@
       desc: 'Modern flat design with frosted glass',
       icon: '✨'
     },
+    { 
+      id: 'dark-typewriter', 
+      name: '🖋️ Dark Typewriter', 
+      desc: 'Elegant dark mode with typewriter vibes',
+      icon: '🖋️'
+    },
+    { 
+      id: 'green-terminal', 
+      name: '💚 Green Terminal', 
+      desc: 'Retro 80s terminal with neon green',
+      icon: '💚'
+    },
+    { 
+      id: 'amber-noir', 
+      name: '🔶 Amber Noir', 
+      desc: 'Vintage typewriter with warm amber glow',
+      icon: '🔶'
+    },
+    { 
+      id: 'indigo-typewriter', 
+      name: '💜 Indigo Typewriter', 
+      desc: 'Modern classy with purple neon accents',
+      icon: '💜'
+    },
   ]
 
   let isOpen = $state(false)
@@ -34,7 +58,7 @@
     isOpen = !isOpen
   }
 
-  const selectTheme = (themeId: 'dark' | 'light' | 'typewriter' | 'minimal') => {
+  const selectTheme = (themeId: 'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter') => {
     uiStore.setTheme(themeId)
     isOpen = false
     
