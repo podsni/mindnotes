@@ -48,6 +48,13 @@
     }
   }
 
+  const handleTogglePin = async () => {
+    const noteId = parseInt(id)
+    if (!isNaN(noteId)) {
+      await notesStore.togglePin(noteId)
+    }
+  }
+
   const handleNewNote = async () => {
     const newId = await notesStore.createNote('New Note', '')
     router.navigate(`/note/${newId}`)
@@ -87,9 +94,19 @@
         oninput={handleTitleChange}
         placeholder="Note title..."
       />
-      <button onclick={handleDelete} class="btn-delete" title="Delete note">
-        🗑️
-      </button>
+      <div class="header-actions">
+        <button 
+          onclick={handleTogglePin} 
+          class="btn-pin" 
+          class:pinned={notesStore.currentNote.pinned}
+          title={notesStore.currentNote.pinned ? 'Unpin note' : 'Pin note'}
+        >
+          {notesStore.currentNote.pinned ? '📍' : '📌'}
+        </button>
+        <button onclick={handleDelete} class="btn-delete" title="Delete note">
+          🗑️
+        </button>
+      </div>
     </div>
     
     <textarea
@@ -133,17 +150,23 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #1e1e1e;
+    background: var(--bg-color);
     overflow: hidden;
     position: relative;
+    transition: background-color 0.3s;
   }
 
   .editor-header {
     padding: 1.5rem 2rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     gap: 1rem;
     align-items: center;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
   }
 
   .title-input {
@@ -152,27 +175,46 @@
     font-weight: 700;
     background: transparent;
     border: none;
-    color: #fff;
+    color: var(--text-color);
     outline: none;
     padding: 0;
+    transition: color 0.3s;
   }
 
   .title-input::placeholder {
-    color: #555;
+    color: var(--text-secondary);
   }
 
+  .btn-pin,
   .btn-delete {
     background: transparent;
-    border: none;
-    font-size: 1.5rem;
+    border: 1px solid var(--border-color);
+    font-size: 1.2rem;
     cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s;
+    opacity: 0.7;
+    transition: all 0.2s;
     padding: 0.5rem;
+    border-radius: 4px;
+  }
+
+  .btn-pin:hover {
+    opacity: 1;
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+  }
+
+  .btn-pin.pinned {
+    opacity: 1;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
   }
 
   .btn-delete:hover {
     opacity: 1;
+    border-color: #ff4444;
+    background: #ff4444;
+    color: white;
   }
 
   .content-textarea {
@@ -180,25 +222,26 @@
     padding: 2rem;
     background: transparent;
     border: none;
-    color: #e0e0e0;
+    color: var(--text-color);
     font-size: 1rem;
     line-height: 1.6;
     resize: none;
     outline: none;
     font-family: 'Segoe UI', system-ui, sans-serif;
+    transition: color 0.3s;
   }
 
   .content-textarea::placeholder {
-    color: #555;
+    color: var(--text-secondary);
   }
 
   .editor-footer {
     padding: 0.75rem 2rem;
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     font-size: 0.85rem;
-    color: #888;
+    color: var(--text-secondary);
   }
 
   .editor-empty {
@@ -207,7 +250,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #888;
+    color: var(--text-secondary);
   }
 
   .empty-icon {
@@ -219,7 +262,7 @@
   .editor-empty h2 {
     margin: 0 0 0.5rem 0;
     font-size: 1.5rem;
-    color: #aaa;
+    color: var(--text-color);
   }
 
   .editor-empty p {
@@ -235,7 +278,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: #007acc;
+    background: var(--primary-color);
     border: none;
     color: white;
     box-shadow: 0 4px 12px rgba(0, 122, 204, 0.4);
@@ -248,7 +291,7 @@
   }
 
   .fab:hover {
-    background: #005a9e;
+    background: var(--primary-hover);
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 122, 204, 0.6);
   }

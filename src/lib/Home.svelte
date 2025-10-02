@@ -46,7 +46,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #1e1e1e;
+    background: var(--bg-color);
+    transition: background-color 0.3s;
   }
 
   .welcome {
@@ -63,17 +64,19 @@
   .welcome h1 {
     font-size: 2.5rem;
     margin: 0 0 0.5rem 0;
-    color: #fff;
+    color: var(--text-color);
+    transition: color 0.3s;
   }
 
   .welcome p {
     font-size: 1.2rem;
-    color: #aaa;
+    color: var(--text-secondary);
     margin: 0 0 2rem 0;
+    transition: color 0.3s;
   }
 
   .btn-start {
-    background: #007acc;
+    background: var(--primary-color);
     color: white;
     border: none;
     padding: 1rem 2rem;
@@ -85,7 +88,7 @@
   }
 
   .btn-start:hover {
-    background: #005a9e;
+    background: var(--primary-hover);
   }
 
   .features {
@@ -100,8 +103,9 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    color: #888;
+    color: var(--text-secondary);
     font-size: 0.9rem;
+    transition: color 0.3s;
   }
 
   .feature-icon {

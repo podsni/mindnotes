@@ -7,11 +7,17 @@ class NotesStore {
   isLoading: boolean = $state(false)
   searchQuery: string = $state('')
 
-  // Load all notes from IndexedDB
+  // Load all notes from IndexedDB (pinned first)
   async loadNotes() {
     this.isLoading = true
     try {
-      this.notes = await noteService.getAllNotes()
+      const allNotes = await noteService.getAllNotes()
+      // Sort: pinned first, then by updatedAt
+      this.notes = allNotes.sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1
+        if (!a.pinned && b.pinned) return 1
+        return b.updatedAt - a.updatedAt
+      })
     } catch (error) {
       console.error('Failed to load notes:', error)
     } finally {
@@ -97,12 +103,56 @@ class NotesStore {
   clearCurrentNote() {
     this.currentNote = null
   }
+
+  // Toggle pin
+  async togglePin(id: number) {
+    try {
+      await noteService.togglePin(id)
+      await this.loadNotes()
+      // Update current note if it's the one being pinned
+      if (this.currentNote?.id === id) {
+        this.currentNote.pinned = !this.currentNote.pinned
+      }
+    } catch (error) {
+      console.error('Failed to toggle pin:', error)
+    }
+  }
+
+  // Export notes
+  async exportNotes() {
+    try {
+      const jsonString = await noteService.exportNotes()
+      const blob = new Blob([jsonString], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `mindnote-backup-${new Date().toISOString().split('T')[0]}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to export notes:', error)
+    }
+  }
+
+  // Import notes
+  async importNotes(file: File) {
+    try {
+      const text = await file.text()
+      const imported = await noteService.importNotes(text)
+      await this.loadNotes()
+      return imported
+    } catch (error) {
+      console.error('Failed to import notes:', error)
+      throw error
+    }
+  }
 }
 
-// UI State Store for sidebar toggle, etc
+// UI State Store for sidebar toggle, theme, etc
 class UIStore {
   sidebarOpen: boolean = $state(true)
   isMobile: boolean = $state(false)
+  theme: 'dark' | 'light' = $state('dark')
 
   toggleSidebar() {
     this.sidebarOpen = !this.sidebarOpen
@@ -122,6 +172,29 @@ class UIStore {
     if (mobile) {
       this.sidebarOpen = false
     }
+  }
+
+  // Toggle theme
+  toggleTheme() {
+    this.theme = this.theme === 'dark' ? 'light' : 'dark'
+    // Save to localStorage
+    localStorage.setItem('mindnote-theme', this.theme)
+    // Apply theme to document
+    this.applyTheme()
+  }
+
+  // Apply theme
+  applyTheme() {
+    document.documentElement.setAttribute('data-theme', this.theme)
+  }
+
+  // Load theme from localStorage
+  loadTheme() {
+    const savedTheme = localStorage.getItem('mindnote-theme') as 'dark' | 'light' | null
+    if (savedTheme) {
+      this.theme = savedTheme
+    }
+    this.applyTheme()
   }
 }
 

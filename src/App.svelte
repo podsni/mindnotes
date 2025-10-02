@@ -39,6 +39,7 @@
   onMount(() => {
     notesStore.loadNotes()
     checkMobile()
+    uiStore.loadTheme() // Load saved theme
     
     window.addEventListener('resize', checkMobile)
     window.addEventListener('keydown', handleKeydown)
@@ -113,9 +114,10 @@
     display: flex;
     height: 100vh;
     overflow: hidden;
-    background: #1e1e1e;
-    color: #e0e0e0;
+    background: var(--bg-color);
+    color: var(--text-color);
     position: relative;
+    transition: background-color 0.3s, color 0.3s;
   }
 
   .main-content {
@@ -130,12 +132,12 @@
     top: 1rem;
     left: 1rem;
     z-index: 1001;
-    background: #2d2d2d;
-    border: 1px solid #444;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 0.5rem;
     cursor: pointer;
-    color: #e0e0e0;
+    color: var(--text-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -143,8 +145,8 @@
   }
 
   .sidebar-toggle:hover {
-    background: #3d3d3d;
-    border-color: #007acc;
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
   }
 
   .sidebar-toggle.hidden {
@@ -202,7 +204,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: #007acc;
+    background: var(--primary-color);
     color: white;
     border: none;
     font-size: 2rem;
@@ -216,7 +218,7 @@
   }
 
   .fab:hover {
-    background: #005a9e;
+    background: var(--primary-hover);
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 122, 204, 0.6);
   }

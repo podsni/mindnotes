@@ -39,6 +39,31 @@
     }
   }
 
+  const handleTogglePin = async (e: Event, noteId: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await notesStore.togglePin(noteId)
+  }
+
+  const handleExport = async () => {
+    await notesStore.exportNotes()
+  }
+
+  const handleImport = async (e: Event) => {
+    const input = e.target as HTMLInputElement
+    const file = input.files?.[0]
+    if (file) {
+      try {
+        const count = await notesStore.importNotes(file)
+        alert(`Successfully imported ${count} notes!`)
+      } catch (error) {
+        alert('Failed to import notes. Please check the file format.')
+      }
+      // Reset input
+      input.value = ''
+    }
+  }
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -87,9 +112,34 @@
 >
   <div class="sidebar-header">
     <h1>📝 MindNote</h1>
-    <button onclick={handleNewNote} class="btn-new">
-      + New
+    <div class="header-actions">
+      <button 
+        onclick={() => uiStore.toggleTheme()} 
+        class="btn-icon" 
+        title="Toggle theme"
+        aria-label="Toggle theme"
+      >
+        {uiStore.theme === 'dark' ? '☀️' : '🌙'}
+      </button>
+      <button onclick={handleNewNote} class="btn-new">
+        + New
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button onclick={handleExport} class="btn-tool" title="Export notes">
+      📤 Export
     </button>
+    <label class="btn-tool" title="Import notes">
+      📥 Import
+      <input 
+        type="file" 
+        accept="application/json"
+        onchange={handleImport}
+        style="display: none;"
+      />
+    </label>
   </div>
 
   <div class="search-box">
@@ -112,20 +162,35 @@
     {:else}
       {#each notesStore.notes as note (note.id)}
         {#if note.id}
-          <a href="#/note/{note.id}" class="note-item" onclick={handleNoteClick}>
+          <a href="#/note/{note.id}" class="note-item" class:pinned={note.pinned} onclick={handleNoteClick}>
             <div class="note-content">
-              <div class="note-title">{note.title || 'Untitled'}</div>
+              <div class="note-title">
+                {#if note.pinned}
+                  <span class="pin-icon">📌</span>
+                {/if}
+                {note.title || 'Untitled'}
+              </div>
               <div class="note-preview">{note.content.slice(0, 60)}{note.content.length > 60 ? '...' : ''}</div>
               <div class="note-date">{formatDate(note.updatedAt)}</div>
             </div>
-            <button 
-              class="btn-delete-note" 
-              onclick={(e) => handleDeleteNote(e, note.id!)}
-              title="Delete note"
-              aria-label="Delete note"
-            >
-              🗑️
-            </button>
+            <div class="note-actions">
+              <button 
+                class="btn-pin-note" 
+                onclick={(e) => handleTogglePin(e, note.id!)}
+                title={note.pinned ? 'Unpin note' : 'Pin note'}
+                aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
+              >
+                {note.pinned ? '📍' : '📌'}
+              </button>
+              <button 
+                class="btn-delete-note" 
+                onclick={(e) => handleDeleteNote(e, note.id!)}
+                title="Delete note"
+                aria-label="Delete note"
+              >
+                🗑️
+              </button>
+            </div>
           </a>
         {/if}
       {/each}
@@ -137,12 +202,12 @@
   .sidebar {
     width: 280px;
     height: 100vh;
-    background: #1e1e1e;
-    border-right: 1px solid #333;
+    background: var(--bg-color);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: transform 0.3s ease, width 0.3s ease;
+    transition: transform 0.3s ease, width 0.3s ease, background-color 0.3s;
   }
 
   /* Desktop: Static sidebar with toggle */
@@ -178,7 +243,7 @@
 
   .sidebar-header {
     padding: 1rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -190,8 +255,30 @@
     font-weight: 600;
   }
 
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-icon:hover {
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
+  }
+
   .btn-new {
-    background: #007acc;
+    background: var(--primary-color);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -202,7 +289,32 @@
   }
 
   .btn-new:hover {
-    background: #005a9e;
+    background: var(--primary-hover);
+  }
+
+  .toolbar {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-tool {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-tool:hover {
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
   }
 
   .search-box {
@@ -213,16 +325,17 @@
   .search-box input {
     width: 100%;
     padding: 0.5rem;
-    background: #2d2d2d;
-    border: 1px solid #444;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    color: #fff;
+    color: var(--text-color);
     font-size: 0.9rem;
+    transition: background-color 0.3s, border-color 0.2s;
   }
 
   .search-box input:focus {
     outline: none;
-    border-color: #007acc;
+    border-color: var(--primary-color);
   }
 
   .notes-list {
@@ -234,7 +347,7 @@
   .loading, .empty {
     text-align: center;
     padding: 2rem 1rem;
-    color: #888;
+    color: var(--text-secondary);
   }
 
   .empty .hint {
@@ -249,7 +362,7 @@
     gap: 0.5rem;
     padding: 0.75rem;
     margin-bottom: 0.5rem;
-    background: #252525;
+    background: var(--card-bg);
     border-radius: 6px;
     border: 1px solid transparent;
     cursor: pointer;
@@ -260,13 +373,18 @@
   }
 
   :global(.note-item:hover) {
-    background: #2d2d2d;
-    border-color: #007acc;
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
   }
 
   :global(.note-item.active) {
-    background: #2d2d2d;
-    border-color: #007acc;
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
+  }
+
+  :global(.note-item.pinned) {
+    background: var(--pinned-bg);
+    border-color: var(--primary-color);
   }
 
   .note-content {
@@ -278,15 +396,23 @@
     font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 0.25rem;
-    color: #fff;
+    color: var(--text-color);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .pin-icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
   }
 
   .note-preview {
     font-size: 0.85rem;
-    color: #aaa;
+    color: var(--text-secondary);
     line-height: 1.4;
     margin-bottom: 0.25rem;
     white-space: nowrap;
@@ -296,24 +422,37 @@
 
   .note-date {
     font-size: 0.75rem;
-    color: #666;
+    color: var(--text-secondary);
   }
 
+  .note-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  :global(.note-item:hover) .note-actions {
+    opacity: 1;
+  }
+
+  .btn-pin-note,
   .btn-delete-note {
     background: transparent;
     border: none;
-    color: #888;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 1rem;
     transition: all 0.2s;
-    opacity: 0;
     flex-shrink: 0;
   }
 
-  :global(.note-item:hover) .btn-delete-note {
-    opacity: 1;
+  .btn-pin-note:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: scale(1.1);
   }
 
   .btn-delete-note:hover {
@@ -322,9 +461,9 @@
     transform: scale(1.1);
   }
 
-  /* Always show delete button on mobile */
+  /* Always show action buttons on mobile */
   @media (max-width: 768px) {
-    .btn-delete-note {
+    .note-actions {
       opacity: 1;
     }
   }
@@ -335,15 +474,15 @@
   }
 
   .notes-list::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: var(--bg-color);
   }
 
   .notes-list::-webkit-scrollbar-thumb {
-    background: #444;
+    background: var(--border-color);
     border-radius: 3px;
   }
 
   .notes-list::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: var(--text-secondary);
   }
 </style>

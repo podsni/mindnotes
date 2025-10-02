@@ -7,14 +7,47 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #1e1e1e;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark Theme (Default) */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  
+  --bg-color: #1e1e1e;
+  --card-bg: #252525;
+  --hover-bg: #2d2d2d;
+  --text-color: #e0e0e0;
+  --text-secondary: #888;
+  --border-color: #333;
+  --primary-color: #007acc;
+  --primary-hover: #005a9e;
+  --pinned-bg: #2a2a3e;
+  
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  color-scheme: light;
+  
+  --bg-color: #ffffff;
+  --card-bg: #f5f5f5;
+  --hover-bg: #e8e8e8;
+  --text-color: #1e1e1e;
+  --text-secondary: #666;
+  --border-color: #ddd;
+  --primary-color: #007acc;
+  --primary-hover: #005a9e;
+  --pinned-bg: #fff8dc;
+  
+  color: var(--text-color);
+  background-color: var(--bg-color);
 }
 
 * {
