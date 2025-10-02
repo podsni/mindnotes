@@ -50,6 +50,24 @@
       desc: 'Modern classy with purple neon accents',
       icon: '💜'
     },
+    { 
+      id: 'everforest-transparent', 
+      name: '🌳 Everforest Glass', 
+      desc: 'Natural green with frosted glass effect',
+      icon: '🌳'
+    },
+    { 
+      id: 'tokyo-night-transparent', 
+      name: '🌌 Tokyo Night Glass', 
+      desc: 'Futuristic neon with glassmorphism',
+      icon: '🌌'
+    },
+    { 
+      id: 'gruvbox-transparent', 
+      name: '🎹 Gruvbox Glass', 
+      desc: 'Retro terminal with glass blur effect',
+      icon: '🎹'
+    },
   ]
 
   let isOpen = $state(false)
@@ -58,7 +76,7 @@
     isOpen = !isOpen
   }
 
-  const selectTheme = (themeId: 'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter') => {
+  const selectTheme = (themeId: 'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter' | 'everforest-transparent' | 'tokyo-night-transparent' | 'gruvbox-transparent') => {
     uiStore.setTheme(themeId)
     isOpen = false
     
@@ -185,7 +203,35 @@
     border-radius: 0.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    overflow: hidden;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+    
+    /* Custom scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) var(--bg-secondary);
+  }
+
+  /* Webkit scrollbar styling */
+  .theme-dropdown::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .theme-dropdown::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+
+  .theme-dropdown::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 3px;
+  }
+
+  .theme-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
   }
 
   .theme-option {
@@ -258,8 +304,31 @@
       bottom: 0;
       left: 0;
       right: 0;
+      max-height: 70vh;
       border-radius: 1rem 1rem 0 0;
       box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+      
+      /* Better touch scrolling on mobile */
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Larger scrollbar on mobile for easier touch */
+    .theme-dropdown::-webkit-scrollbar {
+      width: 8px;
+    }
+  }
+
+  /* Tablet styles */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .theme-dropdown {
+      max-height: 450px;
+    }
+  }
+
+  /* Desktop styles */
+  @media (min-width: 1025px) {
+    .theme-dropdown {
+      max-height: 500px;
     }
   }
 </style>

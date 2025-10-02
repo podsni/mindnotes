@@ -408,6 +408,263 @@
   50%, 100% { caret-color: transparent; }
 }
 
+/* ===== TRANSPARENT GLASSMORPHISM THEMES ===== */
+
+/* 1. 🌳 Everforest Transparent - Natural Green Glass */
+[data-theme="everforest-transparent"] {
+  color-scheme: dark;
+  
+  --bg-color: rgba(45, 53, 59, 0.7);
+  --card-bg: rgba(60, 70, 77, 0.6);
+  --hover-bg: rgba(80, 90, 97, 0.7);
+  --text-color: #d3c6aa;
+  --text-secondary: #9da9a0;
+  --border-color: rgba(167, 192, 128, 0.2);
+  --primary-color: #a7c080;
+  --primary-hover: #8fb573;
+  --pinned-bg: rgba(167, 192, 128, 0.15);
+  
+  /* Font selector */
+  --bg-secondary: rgba(50, 58, 64, 0.65);
+  --border-hover: rgba(167, 192, 128, 0.4);
+  --bg-active: rgba(75, 85, 92, 0.75);
+  --accent: #a7c080;
+  --text-primary: #d3c6aa;
+  --border: rgba(167, 192, 128, 0.2);
+  
+  font-family: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+  
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+/* Natural wood glass effect */
+[data-theme="everforest-transparent"] body {
+  background: linear-gradient(135deg, rgba(45, 53, 59, 0.7) 0%, rgba(60, 70, 77, 0.6) 100%);
+}
+
+/* Frosted glass sidebar - natural green */
+[data-theme="everforest-transparent"] .sidebar {
+  background: rgba(45, 53, 59, 0.75) !important;
+  backdrop-filter: blur(30px) saturate(140%);
+  -webkit-backdrop-filter: blur(30px) saturate(140%);
+  border-right: 1px solid rgba(167, 192, 128, 0.25) !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Glass editor area */
+[data-theme="everforest-transparent"] .content-textarea,
+[data-theme="everforest-transparent"] .title-input {
+  background: rgba(60, 70, 77, 0.5) !important;
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(167, 192, 128, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="everforest-transparent"] .content-textarea::selection,
+[data-theme="everforest-transparent"] .title-input::selection {
+  background-color: rgba(167, 192, 128, 0.3);
+}
+
+/* Natural accent glow */
+[data-theme="everforest-transparent"] button:hover,
+[data-theme="everforest-transparent"] .note-item:hover {
+  background: rgba(167, 192, 128, 0.15) !important;
+  box-shadow: 0 0 12px rgba(167, 192, 128, 0.2);
+}
+
+/* 2. 🌌 Tokyo Night Transparent - Futuristic Neon Glass */
+[data-theme="tokyo-night-transparent"] {
+  color-scheme: dark;
+  
+  --bg-color: rgba(26, 27, 38, 0.65);
+  --card-bg: rgba(36, 40, 59, 0.6);
+  --hover-bg: rgba(48, 52, 70, 0.7);
+  --text-color: #c0caf5;
+  --text-secondary: #565f89;
+  --border-color: rgba(122, 162, 247, 0.2);
+  --primary-color: #7aa2f7;
+  --primary-hover: #5a82d7;
+  --pinned-bg: rgba(187, 154, 247, 0.15);
+  
+  /* Font selector */
+  --bg-secondary: rgba(30, 32, 45, 0.7);
+  --border-hover: rgba(122, 162, 247, 0.5);
+  --bg-active: rgba(45, 48, 65, 0.8);
+  --accent: #7aa2f7;
+  --text-primary: #c0caf5;
+  --border: rgba(122, 162, 247, 0.2);
+  
+  font-family: 'JetBrains Mono', 'Source Code Pro', monospace;
+  
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+/* Cyberpunk gradient background */
+[data-theme="tokyo-night-transparent"] body {
+  background: linear-gradient(135deg, 
+    rgba(26, 27, 38, 0.65) 0%, 
+    rgba(36, 40, 59, 0.6) 50%,
+    rgba(41, 46, 73, 0.65) 100%);
+}
+
+/* Neon glass sidebar */
+[data-theme="tokyo-night-transparent"] .sidebar {
+  background: rgba(26, 27, 38, 0.7) !important;
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-right: 1px solid rgba(122, 162, 247, 0.3) !important;
+  box-shadow: 4px 0 30px rgba(122, 162, 247, 0.15);
+}
+
+/* Futuristic glass editor */
+[data-theme="tokyo-night-transparent"] .content-textarea,
+[data-theme="tokyo-night-transparent"] .title-input {
+  background: rgba(36, 40, 59, 0.5) !important;
+  backdrop-filter: blur(25px) saturate(150%);
+  -webkit-backdrop-filter: blur(25px) saturate(150%);
+  border: 1px solid rgba(122, 162, 247, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(122, 162, 247, 0.1);
+}
+
+[data-theme="tokyo-night-transparent"] .content-textarea::selection,
+[data-theme="tokyo-night-transparent"] .title-input::selection {
+  background-color: rgba(187, 154, 247, 0.3);
+}
+
+/* Neon glow effects */
+[data-theme="tokyo-night-transparent"] button:hover,
+[data-theme="tokyo-night-transparent"] .note-item:hover {
+  background: rgba(122, 162, 247, 0.15) !important;
+  box-shadow: 0 0 20px rgba(122, 162, 247, 0.3);
+}
+
+/* Neon border pulse animation */
+[data-theme="tokyo-night-transparent"] .content-textarea:focus,
+[data-theme="tokyo-night-transparent"] .title-input:focus {
+  border-color: rgba(122, 162, 247, 0.5);
+  box-shadow: 0 0 20px rgba(122, 162, 247, 0.2);
+  animation: neonPulse 2s infinite;
+}
+
+@keyframes neonPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(122, 162, 247, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(122, 162, 247, 0.4); }
+}
+
+/* 3. 🎹 Gruvbox Transparent - Retro Terminal Glass */
+[data-theme="gruvbox-transparent"] {
+  color-scheme: dark;
+  
+  --bg-color: rgba(40, 40, 40, 0.75);
+  --card-bg: rgba(60, 56, 54, 0.65);
+  --hover-bg: rgba(80, 73, 69, 0.75);
+  --text-color: #ebdbb2;
+  --text-secondary: #a89984;
+  --border-color: rgba(254, 128, 25, 0.2);
+  --primary-color: #fe8019;
+  --primary-hover: #d65d0e;
+  --pinned-bg: rgba(184, 187, 38, 0.15);
+  
+  /* Font selector */
+  --bg-secondary: rgba(50, 48, 47, 0.7);
+  --border-hover: rgba(254, 128, 25, 0.5);
+  --bg-active: rgba(70, 65, 60, 0.8);
+  --accent: #fe8019;
+  --text-primary: #ebdbb2;
+  --border: rgba(254, 128, 25, 0.2);
+  
+  font-family: 'Courier Prime', 'Source Code Pro', monospace;
+  
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+/* Retro warm gradient */
+[data-theme="gruvbox-transparent"] body {
+  background: linear-gradient(135deg, 
+    rgba(40, 40, 40, 0.75) 0%, 
+    rgba(60, 56, 54, 0.65) 50%,
+    rgba(50, 48, 47, 0.7) 100%);
+}
+
+/* Retro frosted glass sidebar */
+[data-theme="gruvbox-transparent"] .sidebar {
+  background: rgba(40, 40, 40, 0.8) !important;
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border-right: 1px solid rgba(254, 128, 25, 0.3) !important;
+  box-shadow: 4px 0 25px rgba(254, 128, 25, 0.1);
+}
+
+/* Vintage glass editor */
+[data-theme="gruvbox-transparent"] .content-textarea,
+[data-theme="gruvbox-transparent"] .title-input {
+  background: rgba(60, 56, 54, 0.55) !important;
+  backdrop-filter: blur(22px) saturate(130%);
+  -webkit-backdrop-filter: blur(22px) saturate(130%);
+  border: 1px solid rgba(254, 128, 25, 0.2);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="gruvbox-transparent"] .content-textarea::selection,
+[data-theme="gruvbox-transparent"] .title-input::selection {
+  background-color: rgba(254, 128, 25, 0.3);
+}
+
+/* Retro orange glow */
+[data-theme="gruvbox-transparent"] button:hover,
+[data-theme="gruvbox-transparent"] .note-item:hover {
+  background: rgba(254, 128, 25, 0.15) !important;
+  box-shadow: 0 0 15px rgba(254, 128, 25, 0.2);
+}
+
+/* Terminal scanline effect */
+[data-theme="gruvbox-transparent"] body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.05),
+    rgba(0, 0, 0, 0.05) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  z-index: 9999;
+  opacity: 0.3;
+}
+
+/* Adaptive transparency for all glass themes */
+[data-theme="everforest-transparent"] .note-item,
+[data-theme="tokyo-night-transparent"] .note-item,
+[data-theme="gruvbox-transparent"] .note-item {
+  background: var(--card-bg) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+/* Glass button effects */
+[data-theme="everforest-transparent"] button,
+[data-theme="tokyo-night-transparent"] button,
+[data-theme="gruvbox-transparent"] button {
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
 * {
   box-sizing: border-box;
 }

@@ -212,11 +212,38 @@
     right: 0;
     max-height: 400px;
     overflow-y: auto;
+    overflow-x: hidden;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 0.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     z-index: 1000;
+    
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+    
+    /* Custom scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) var(--bg-secondary);
+  }
+
+  /* Webkit scrollbar styling */
+  .font-dropdown::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .font-dropdown::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+
+  .font-dropdown::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 3px;
+  }
+
+  .font-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
   }
 
   .font-option {
@@ -366,6 +393,14 @@
       max-height: 60vh;
       border-radius: 1rem 1rem 0 0;
       box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+      
+      /* Better touch scrolling on mobile */
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Larger scrollbar on mobile for easier touch */
+    .font-dropdown::-webkit-scrollbar {
+      width: 8px;
     }
 
     .font-size-control {
@@ -380,6 +415,20 @@
     .font-size-input {
       width: 45px;
       font-size: 0.8rem;
+    }
+  }
+
+  /* Tablet styles */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .font-dropdown {
+      max-height: 450px;
+    }
+  }
+
+  /* Desktop styles */
+  @media (min-width: 1025px) {
+    .font-dropdown {
+      max-height: 500px;
     }
   }
 </style>

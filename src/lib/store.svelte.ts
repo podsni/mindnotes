@@ -152,7 +152,7 @@ class NotesStore {
 class UIStore {
   sidebarOpen: boolean = $state(true)
   isMobile: boolean = $state(false)
-  theme: 'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter' = $state('dark')
+  theme: 'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter' | 'everforest-transparent' | 'tokyo-night-transparent' | 'gruvbox-transparent' = $state('dark')
   font: string = $state('courier-prime')
   fontSize: number = $state(16)
 
@@ -187,7 +187,7 @@ class UIStore {
   }
 
   // Set theme
-  setTheme(theme: 'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter') {
+  setTheme(theme: 'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter' | 'everforest-transparent' | 'tokyo-night-transparent' | 'gruvbox-transparent') {
     this.theme = theme
     // Save to localStorage
     localStorage.setItem('mindnote-theme', this.theme)
@@ -197,7 +197,7 @@ class UIStore {
 
   // Toggle theme (cycle through all themes)
   toggleTheme() {
-    const themes: Array<'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter'> = ['dark', 'light', 'typewriter', 'minimal', 'dark-typewriter', 'green-terminal', 'amber-noir', 'indigo-typewriter']
+    const themes: Array<'dark' | 'light' | 'typewriter' | 'minimal' | 'dark-typewriter' | 'green-terminal' | 'amber-noir' | 'indigo-typewriter' | 'everforest-transparent' | 'tokyo-night-transparent' | 'gruvbox-transparent'> = ['dark', 'light', 'typewriter', 'minimal', 'dark-typewriter', 'green-terminal', 'amber-noir', 'indigo-typewriter', 'everforest-transparent', 'tokyo-night-transparent', 'gruvbox-transparent']
     const currentIndex = themes.indexOf(this.theme)
     const nextIndex = (currentIndex + 1) % themes.length
     this.setTheme(themes[nextIndex])
