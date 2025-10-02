@@ -242,7 +242,7 @@ class UIStore {
 
   // Set font size
   setFontSize(size: number) {
-    this.fontSize = Math.max(12, Math.min(24, size)) // Limit between 12-24px
+    this.fontSize = Math.max(12, Math.min(100, size)) // Limit between 12-100px
     // Save to localStorage
     localStorage.setItem('mindnote-fontSize', this.fontSize.toString())
     // Apply font size to document

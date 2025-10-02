@@ -117,7 +117,7 @@
       value={uiStore.fontSize}
       oninput={handleFontSizeInput}
       min="12"
-      max="24"
+      max="100"
       aria-label="Font size"
     />
     <span class="font-size-label">px</span>
@@ -126,7 +126,7 @@
       type="button"
       class="btn-size"
       onclick={increaseFontSize}
-      disabled={uiStore.fontSize >= 24}
+      disabled={uiStore.fontSize >= 100}
       aria-label="Increase font size"
       title="Increase font size"
     >
