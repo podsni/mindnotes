@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from 'svelte'
   import { notesStore, uiStore } from './store.svelte'
   import { router } from './router'
+  import MarkdownPreview from './MarkdownPreview.svelte'
+  import { getBacklinks } from './markdown'
 
   interface Props {
     id: string
@@ -11,6 +13,7 @@
   
   let titleInput: HTMLInputElement | undefined = $state()
   let contentTextarea: HTMLTextAreaElement | undefined = $state()
+  let previewMode = $state(false)
   
   // Load note when component mounts or ID changes
   $effect(() => {
@@ -60,6 +63,17 @@
     router.navigate(`/note/${newId}`)
   }
 
+  const togglePreview = () => {
+    previewMode = !previewMode
+  }
+
+  // Get backlinks for current note
+  const backlinks = $derived(() => {
+    const noteId = parseInt(id)
+    if (isNaN(noteId)) return []
+    return getBacklinks(noteId, notesStore.notes)
+  })
+
   // Auto-resize textarea for mobile
   const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
     if (uiStore.isMobile) {
@@ -96,6 +110,14 @@
       />
       <div class="header-actions">
         <button 
+          onclick={togglePreview} 
+          class="btn-preview" 
+          class:active={previewMode}
+          title={previewMode ? 'Edit mode' : 'Preview mode'}
+        >
+          {previewMode ? '✏️' : '👁️'}
+        </button>
+        <button 
           onclick={handleTogglePin} 
           class="btn-pin" 
           class:pinned={notesStore.currentNote.pinned}
@@ -109,22 +131,50 @@
       </div>
     </div>
     
-    <textarea
-      bind:this={contentTextarea}
-      class="content-textarea"
-      value={notesStore.currentNote.content}
-      oninput={handleContentChange}
-      placeholder="Start writing your note..."
-    ></textarea>
+    <div class="editor-content">
+      {#if previewMode}
+        <MarkdownPreview content={notesStore.currentNote.content} />
+      {:else}
+        <textarea
+          bind:this={contentTextarea}
+          class="content-textarea"
+          value={notesStore.currentNote.content}
+          oninput={handleContentChange}
+          placeholder="Start writing your note... Use [[note-title]] for cross-note links"
+        ></textarea>
+      {/if}
+    </div>
 
     <div class="editor-footer">
-      <span class="word-count">
-        {notesStore.currentNote.content.split(/\s+/).filter(w => w.length > 0).length} words
-      </span>
+      <div class="footer-left">
+        <span class="word-count">
+          {notesStore.currentNote.content.split(/\s+/).filter(w => w.length > 0).length} words
+        </span>
+        {#if backlinks().length > 0}
+          <span class="backlinks-count" title="Notes linking to this note">
+            🔗 {backlinks().length} backlink{backlinks().length > 1 ? 's' : ''}
+          </span>
+        {/if}
+      </div>
       <span class="last-updated">
         Last updated: {new Date(notesStore.currentNote.updatedAt).toLocaleString()}
       </span>
     </div>
+
+    <!-- Backlinks section -->
+    {#if backlinks().length > 0}
+      <div class="backlinks-section">
+        <h3>Linked from:</h3>
+        <div class="backlinks-list">
+          {#each backlinks() as backlink}
+            <a href="#/note/{backlink.id}" class="backlink-item">
+              <span class="backlink-title">{backlink.title}</span>
+              <span class="backlink-preview">{backlink.content.slice(0, 80)}...</span>
+            </a>
+          {/each}
+        </div>
+      </div>
+    {/if}
   {:else}
     <div class="editor-empty">
       <div class="empty-icon">📝</div>
@@ -167,6 +217,14 @@
   .header-actions {
     display: flex;
     gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .editor-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .title-input {
@@ -185,6 +243,7 @@
     color: var(--text-secondary);
   }
 
+  .btn-preview,
   .btn-pin,
   .btn-delete {
     background: transparent;
@@ -195,6 +254,14 @@
     transition: all 0.2s;
     padding: 0.5rem;
     border-radius: 4px;
+  }
+
+  .btn-preview:hover,
+  .btn-preview.active {
+    opacity: 1;
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
   }
 
   .btn-pin:hover {
@@ -240,8 +307,76 @@
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 0.85rem;
     color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .footer-left {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .backlinks-count {
+    color: var(--primary-color);
+    font-weight: 500;
+    cursor: help;
+  }
+
+  /* Backlinks section */
+  .backlinks-section {
+    padding: 1rem 2rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--card-bg);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .backlinks-section h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .backlinks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .backlink-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+  }
+
+  .backlink-item:hover {
+    border-color: var(--primary-color);
+    background: var(--hover-bg);
+  }
+
+  .backlink-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
+  }
+
+  .backlink-preview {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   .editor-empty {

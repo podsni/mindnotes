@@ -221,11 +221,17 @@ await noteService.getPinnedNotes()
 5. ✅ Lazy state updates (local first, DB async)
 6. ✅ Efficient re-renders (Svelte's fine-grained reactivity)
 
+### New Features Implemented:
+- ✅ **Virtualized List:** Auto-enabled for >50 notes
+- ✅ **Markdown Preview:** Toggle preview mode with 👁️ button
+- ✅ **Cross-note Linking:** `[[note-title]]` syntax with backlinks
+- ✅ **Backlinks Display:** See which notes link to current note
+
 ### Future Optimizations (Not Yet Implemented):
-- ⏳ **Virtualized List:** `svelte-virtual-list` for large note lists
 - ⏳ **Lazy Loading:** Dynamic import for Editor component
 - ⏳ **Service Worker:** Offline caching & PWA support
 - ⏳ **Web Workers:** Background DB operations
+- ⏳ **Graph View:** Visual network of note connections
 
 ---
 

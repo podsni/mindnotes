@@ -2,11 +2,13 @@
   import { notesStore, uiStore } from './store.svelte'
   import { router } from './router'
   import type { Note } from './db'
+  import VirtualList from 'svelte-virtual-list'
 
   let searchInput = $state('')
   let touchStartX = $state(0)
   let touchCurrentX = $state(0)
   let isDragging = $state(false)
+  let listContainer: HTMLDivElement | undefined = $state()
 
   const handleSearch = (e: Event) => {
     const target = e.target as HTMLInputElement
@@ -151,7 +153,7 @@
     />
   </div>
 
-  <div class="notes-list">
+  <div class="notes-list" bind:this={listContainer}>
     {#if notesStore.isLoading}
       <div class="loading">Loading...</div>
     {:else if notesStore.notes.length === 0}
@@ -159,7 +161,44 @@
         <p>No notes yet</p>
         <p class="hint">Create your first note!</p>
       </div>
+    {:else if notesStore.notes.length > 50}
+      <!-- Use virtual list for large datasets (>50 notes) -->
+      <VirtualList items={notesStore.notes} let:item height="calc(100vh - 250px)">
+        {#if item.id}
+          <a href="#/note/{item.id}" class="note-item" class:pinned={item.pinned} onclick={handleNoteClick}>
+            <div class="note-content">
+              <div class="note-title">
+                {#if item.pinned}
+                  <span class="pin-icon">📌</span>
+                {/if}
+                {item.title || 'Untitled'}
+              </div>
+              <div class="note-preview">{item.content.slice(0, 60)}{item.content.length > 60 ? '...' : ''}</div>
+              <div class="note-date">{formatDate(item.updatedAt)}</div>
+            </div>
+            <div class="note-actions">
+              <button 
+                class="btn-pin-note" 
+                onclick={(e) => handleTogglePin(e, item.id!)}
+                title={item.pinned ? 'Unpin note' : 'Pin note'}
+                aria-label={item.pinned ? 'Unpin note' : 'Pin note'}
+              >
+                {item.pinned ? '📍' : '📌'}
+              </button>
+              <button 
+                class="btn-delete-note" 
+                onclick={(e) => handleDeleteNote(e, item.id!)}
+                title="Delete note"
+                aria-label="Delete note"
+              >
+                🗑️
+              </button>
+            </div>
+          </a>
+        {/if}
+      </VirtualList>
     {:else}
+      <!-- Regular list for small datasets (≤50 notes) -->
       {#each notesStore.notes as note (note.id)}
         {#if note.id}
           <a href="#/note/{note.id}" class="note-item" class:pinned={note.pinned} onclick={handleNoteClick}>

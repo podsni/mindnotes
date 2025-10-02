@@ -11,6 +11,12 @@ importers:
       dexie:
         specifier: ^4.2.0
         version: 4.2.0
+      marked:
+        specifier: ^16.3.0
+        version: 16.3.0
+      svelte-virtual-list:
+        specifier: ^3.0.1
+        version: 3.0.1
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.1
@@ -18,6 +24,9 @@ importers:
       '@tsconfig/svelte':
         specifier: ^5.0.5
         version: 5.0.5
+      '@types/marked':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@types/node':
         specifier: ^24.6.0
         version: 24.6.2
@@ -377,6 +386,10 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/marked@6.0.0':
+    resolution: {integrity: sha512-jmjpa4BwUsmhxcfsgUit/7A9KbrC48Q0q8KvnY107ogcjGgTFDlIL3RpihNpx2Mu1hM4mdFQjoVc4O6JoGKHsA==}
+    deprecated: This is a stub types definition. marked provides its own type definitions, so you do not need this installed.
+
   '@types/node@24.6.2':
     resolution: {integrity: sha512-d2L25Y4j+W3ZlNAeMKcy7yDsK425ibcAOO2t7aPTz6gNMH0z2GThtwENCDc0d/Pw9wgyRqE5Px1wkV7naz8ang==}
 
@@ -709,6 +722,11 @@ packages:
   magic-string@0.30.19:
     resolution: {integrity: sha512-2N21sPY9Ws53PZvsEpVtNuSW+ScYbQdp4b9qUaL+9QkHUrGFKo56Lg9Emg5s9V/qrtNBmiR01sYhUOwu3H+VOw==}
 
+  marked@16.3.0:
+    resolution: {integrity: sha512-K3UxuKu6l6bmA5FUwYho8CfJBlsUWAooKtdGgMcERSpF7gcBUrCGsLH7wDaaNOzwq18JzSUDyoEb/YsrqMac3w==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
@@ -922,6 +940,9 @@ packages:
     peerDependencies:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
+
+  svelte-virtual-list@3.0.1:
+    resolution: {integrity: sha512-e7e+jn8VDjmdD8A1oOVBWmUi7jg+uugmiihkK0Cuk35JeeCR8ja40/B6DpCTHJFsQAZg6EVPjetN2ibgr25YCA==}
 
   svelte@5.39.8:
     resolution: {integrity: sha512-KfZ3hCITdxIXTOvrea4nFZX2o+47HPTChKeocgj9BwJQYqWrviVCcPj4boXHF5yf8+eBKqhHY8xii//XaakKXA==}
@@ -1251,6 +1272,10 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/marked@6.0.0':
+    dependencies:
+      marked: 16.3.0
+
   '@types/node@24.6.2':
     dependencies:
       undici-types: 7.13.0
@@ -1553,6 +1578,8 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  marked@16.3.0: {}
+
   merge2@1.4.1: {}
 
   micromatch@4.0.8:
@@ -1755,6 +1782,8 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - picomatch
+
+  svelte-virtual-list@3.0.1: {}
 
   svelte@5.39.8:
     dependencies:
