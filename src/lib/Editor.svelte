@@ -103,7 +103,7 @@
       <input
         bind:this={titleInput}
         type="text"
-        class="title-input"
+        class="title-input editor-title"
         value={notesStore.currentNote.title}
         oninput={handleTitleChange}
         placeholder="Note title..."
@@ -137,7 +137,7 @@
       {:else}
         <textarea
           bind:this={contentTextarea}
-          class="content-textarea"
+          class="content-textarea editor-text"
           value={notesStore.currentNote.content}
           oninput={handleContentChange}
           placeholder="Start writing your note... Use [[note-title]] for cross-note links"
@@ -295,11 +295,21 @@
     resize: none;
     outline: none;
     font-family: 'Segoe UI', system-ui, sans-serif;
-    transition: color 0.3s;
+    transition: all 0.3s ease;
   }
 
   .content-textarea::placeholder {
     color: var(--text-secondary);
+  }
+
+  /* Font changing animation */
+  :global(.editor-content.font-changing) {
+    animation: fontFlash 0.3s ease;
+  }
+
+  @keyframes fontFlash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
   }
 
   .editor-footer {

@@ -28,6 +28,13 @@
   --primary-hover: #005a9e;
   --pinned-bg: #2a2a3e;
   
+  /* Font selector */
+  --bg-secondary: #2a2a2a;
+  --border-hover: #555;
+  --bg-active: #3a3a3a;
+  --accent: #007acc;
+  --text-primary: #e0e0e0;
+  
   color: var(--text-color);
   background-color: var(--bg-color);
 }
@@ -45,6 +52,13 @@
   --primary-color: #007acc;
   --primary-hover: #005a9e;
   --pinned-bg: #fff8dc;
+  
+  /* Font selector */
+  --bg-secondary: #f8f8f8;
+  --border-hover: #999;
+  --bg-active: #e0e0e0;
+  --accent: #007acc;
+  --text-primary: #1e1e1e;
   
   color: var(--text-color);
   background-color: var(--bg-color);
@@ -103,4 +117,105 @@ button:focus-visible {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Font families - Apply to editor elements */
+/* Font size variable */
+:root {
+  --editor-font-size: 16px;
+}
+
+/* Apply to all editor text elements */
+.editor-text,
+.editor-title {
+  font-size: var(--editor-font-size) !important;
+}
+
+/* Screenplay Standard Fonts */
+[data-font="courier-new"] .editor-text,
+[data-font="courier-new"] .editor-title,
+[data-font="courier-new"] textarea {
+  font-family: "Courier New", Courier, monospace !important;
+  line-height: 1.7 !important;
+}
+
+[data-font="courier-prime"] .editor-text,
+[data-font="courier-prime"] .editor-title,
+[data-font="courier-prime"] textarea {
+  font-family: "Courier Prime", "Courier New", Courier, monospace !important;
+  line-height: 1.7 !important;
+}
+
+/* Typewriter Fonts */
+[data-font="special-elite"] .editor-text,
+[data-font="special-elite"] .editor-title,
+[data-font="special-elite"] textarea {
+  font-family: "Special Elite", "Courier New", monospace !important;
+  line-height: 1.7 !important;
+  letter-spacing: 0.02em !important;
+}
+
+[data-font="american-typewriter"] .editor-text,
+[data-font="american-typewriter"] .editor-title,
+[data-font="american-typewriter"] textarea {
+  font-family: "American Typewriter", "Courier New", serif !important;
+  line-height: 1.7 !important;
+}
+
+[data-font="cutive-mono"] .editor-text,
+[data-font="cutive-mono"] .editor-title,
+[data-font="cutive-mono"] textarea {
+  font-family: "Cutive Mono", "Courier New", monospace !important;
+  line-height: 1.7 !important;
+}
+
+/* Modern Monospace Fonts */
+[data-font="ibm-plex"] .editor-text,
+[data-font="ibm-plex"] .editor-title,
+[data-font="ibm-plex"] textarea {
+  font-family: "IBM Plex Mono", monospace !important;
+  line-height: 1.6 !important;
+}
+
+[data-font="source-code"] .editor-text,
+[data-font="source-code"] .editor-title,
+[data-font="source-code"] textarea {
+  font-family: "Source Code Pro", monospace !important;
+  line-height: 1.6 !important;
+}
+
+[data-font="pt-mono"] .editor-text,
+[data-font="pt-mono"] .editor-title,
+[data-font="pt-mono"] textarea {
+  font-family: "PT Mono", monospace !important;
+  line-height: 1.6 !important;
+}
+
+[data-font="anonymous"] .editor-text,
+[data-font="anonymous"] .editor-title,
+[data-font="anonymous"] textarea {
+  font-family: "Anonymous Pro", monospace !important;
+  line-height: 1.6 !important;
+}
+
+[data-font="roboto-mono"] .editor-text,
+[data-font="roboto-mono"] .editor-title,
+[data-font="roboto-mono"] textarea {
+  font-family: "Roboto Mono", monospace !important;
+  line-height: 1.6 !important;
+}
+
+[data-font="jetbrains"] .editor-text,
+[data-font="jetbrains"] .editor-title,
+[data-font="jetbrains"] textarea {
+  font-family: "JetBrains Mono", monospace !important;
+  line-height: 1.6 !important;
+}
+
+/* System Default */
+[data-font="system"] .editor-text,
+[data-font="system"] .editor-title,
+[data-font="system"] textarea {
+  font-family: system-ui, -apple-system, sans-serif !important;
+  line-height: 1.6 !important;
 }

@@ -3,6 +3,7 @@
   import { router } from './router'
   import type { Note } from './db'
   import VirtualList from 'svelte-virtual-list'
+  import FontSelector from './FontSelector.svelte'
 
   let searchInput = $state('')
   let touchStartX = $state(0)
@@ -142,6 +143,10 @@
         style="display: none;"
       />
     </label>
+  </div>
+
+  <div class="font-settings">
+    <FontSelector />
   </div>
 
   <div class="search-box">
@@ -354,6 +359,11 @@
   .btn-tool:hover {
     background: var(--hover-bg);
     border-color: var(--primary-color);
+  }
+
+  .font-settings {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .search-box {

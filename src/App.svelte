@@ -40,6 +40,8 @@
     notesStore.loadNotes()
     checkMobile()
     uiStore.loadTheme() // Load saved theme
+    uiStore.loadFont() // Load saved font
+    uiStore.loadFontSize() // Load saved font size
     
     window.addEventListener('resize', checkMobile)
     window.addEventListener('keydown', handleKeydown)

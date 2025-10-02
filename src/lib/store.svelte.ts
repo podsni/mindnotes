@@ -153,6 +153,8 @@ class UIStore {
   sidebarOpen: boolean = $state(true)
   isMobile: boolean = $state(false)
   theme: 'dark' | 'light' = $state('dark')
+  font: string = $state('courier-prime')
+  fontSize: number = $state(16)
 
   toggleSidebar() {
     this.sidebarOpen = !this.sidebarOpen
@@ -195,6 +197,52 @@ class UIStore {
       this.theme = savedTheme
     }
     this.applyTheme()
+  }
+
+  // Set font
+  setFont(font: string) {
+    this.font = font
+    // Save to localStorage
+    localStorage.setItem('mindnote-font', font)
+    // Apply font to document
+    this.applyFont()
+  }
+
+  // Apply font
+  applyFont() {
+    document.documentElement.setAttribute('data-font', this.font)
+  }
+
+  // Load font from localStorage
+  loadFont() {
+    const savedFont = localStorage.getItem('mindnote-font')
+    if (savedFont) {
+      this.font = savedFont
+    }
+    this.applyFont()
+  }
+
+  // Set font size
+  setFontSize(size: number) {
+    this.fontSize = Math.max(12, Math.min(24, size)) // Limit between 12-24px
+    // Save to localStorage
+    localStorage.setItem('mindnote-fontSize', this.fontSize.toString())
+    // Apply font size to document
+    this.applyFontSize()
+  }
+
+  // Apply font size
+  applyFontSize() {
+    document.documentElement.style.setProperty('--editor-font-size', `${this.fontSize}px`)
+  }
+
+  // Load font size from localStorage
+  loadFontSize() {
+    const savedSize = localStorage.getItem('mindnote-fontSize')
+    if (savedSize) {
+      this.fontSize = parseInt(savedSize, 10)
+    }
+    this.applyFontSize()
   }
 }
 
