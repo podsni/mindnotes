@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { notesStore } from './store.svelte'
+  import { notesStore, uiStore } from './store.svelte'
   import { router } from './router'
   import type { Note } from './db'
 
   let searchInput = $state('')
+  let touchStartX = $state(0)
+  let touchCurrentX = $state(0)
+  let isDragging = $state(false)
 
   const handleSearch = (e: Event) => {
     const target = e.target as HTMLInputElement
@@ -14,6 +17,26 @@
   const handleNewNote = async () => {
     const id = await notesStore.createNote('New Note', '')
     router.navigate(`/note/${id}`)
+    // Close sidebar on mobile after creating note
+    if (uiStore.isMobile) {
+      uiStore.closeSidebar()
+    }
+  }
+
+  const handleNoteClick = () => {
+    // Close sidebar on mobile when clicking a note
+    if (uiStore.isMobile) {
+      uiStore.closeSidebar()
+    }
+  }
+
+  const handleDeleteNote = async (e: Event, noteId: number) => {
+    e.preventDefault() // Prevent navigation
+    e.stopPropagation() // Prevent click bubbling
+    
+    if (confirm('Are you sure you want to delete this note?')) {
+      await notesStore.deleteNote(noteId)
+    }
   }
 
   const formatDate = (timestamp: number) => {
@@ -27,9 +50,41 @@
     if (days < 7) return `${days} days ago`
     return date.toLocaleDateString()
   }
+
+  // Swipe gesture handlers
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX = e.touches[0].clientX
+    isDragging = true
+  }
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return
+    touchCurrentX = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return
+    
+    const diff = touchCurrentX - touchStartX
+    
+    // Swipe left to close (threshold: 50px)
+    if (diff < -50 && uiStore.isMobile) {
+      uiStore.closeSidebar()
+    }
+    
+    isDragging = false
+    touchStartX = 0
+    touchCurrentX = 0
+  }
 </script>
 
-<aside class="sidebar">
+<aside 
+  class="sidebar" 
+  class:open={uiStore.sidebarOpen}
+  ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
+  ontouchend={handleTouchEnd}
+>
   <div class="sidebar-header">
     <h1>📝 MindNote</h1>
     <button onclick={handleNewNote} class="btn-new">
@@ -56,11 +111,23 @@
       </div>
     {:else}
       {#each notesStore.notes as note (note.id)}
-        <a href="#/note/{note.id}" class="note-item">
-          <div class="note-title">{note.title || 'Untitled'}</div>
-          <div class="note-preview">{note.content.slice(0, 60)}{note.content.length > 60 ? '...' : ''}</div>
-          <div class="note-date">{formatDate(note.updatedAt)}</div>
-        </a>
+        {#if note.id}
+          <a href="#/note/{note.id}" class="note-item" onclick={handleNoteClick}>
+            <div class="note-content">
+              <div class="note-title">{note.title || 'Untitled'}</div>
+              <div class="note-preview">{note.content.slice(0, 60)}{note.content.length > 60 ? '...' : ''}</div>
+              <div class="note-date">{formatDate(note.updatedAt)}</div>
+            </div>
+            <button 
+              class="btn-delete-note" 
+              onclick={(e) => handleDeleteNote(e, note.id!)}
+              title="Delete note"
+              aria-label="Delete note"
+            >
+              🗑️
+            </button>
+          </a>
+        {/if}
       {/each}
     {/if}
   </div>
@@ -75,6 +142,38 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: transform 0.3s ease, width 0.3s ease;
+  }
+
+  /* Desktop: Static sidebar with toggle */
+  @media (min-width: 1025px) {
+    .sidebar {
+      width: 280px;
+    }
+  }
+
+  /* Tablet: Sidebar can collapse */
+  @media (max-width: 1024px) {
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 1000;
+      transform: translateX(-100%);
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+  }
+
+  /* Mobile: Full overlay drawer */
+  @media (max-width: 600px) {
+    .sidebar {
+      width: 85%;
+      max-width: 320px;
+    }
   }
 
   .sidebar-header {
@@ -144,7 +243,10 @@
   }
 
   :global(.note-item) {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
     padding: 0.75rem;
     margin-bottom: 0.5rem;
     background: #252525;
@@ -154,6 +256,7 @@
     transition: all 0.2s;
     text-decoration: none;
     color: inherit;
+    position: relative;
   }
 
   :global(.note-item:hover) {
@@ -164,6 +267,11 @@
   :global(.note-item.active) {
     background: #2d2d2d;
     border-color: #007acc;
+  }
+
+  .note-content {
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
   }
 
   .note-title {
@@ -189,6 +297,36 @@
   .note-date {
     font-size: 0.75rem;
     color: #666;
+  }
+
+  .btn-delete-note {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: all 0.2s;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+
+  :global(.note-item:hover) .btn-delete-note {
+    opacity: 1;
+  }
+
+  .btn-delete-note:hover {
+    background: #ff4444;
+    color: white;
+    transform: scale(1.1);
+  }
+
+  /* Always show delete button on mobile */
+  @media (max-width: 768px) {
+    .btn-delete-note {
+      opacity: 1;
+    }
   }
 
   /* Scrollbar styling */

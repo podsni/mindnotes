@@ -99,4 +99,31 @@ class NotesStore {
   }
 }
 
+// UI State Store for sidebar toggle, etc
+class UIStore {
+  sidebarOpen: boolean = $state(true)
+  isMobile: boolean = $state(false)
+
+  toggleSidebar() {
+    this.sidebarOpen = !this.sidebarOpen
+  }
+
+  closeSidebar() {
+    this.sidebarOpen = false
+  }
+
+  openSidebar() {
+    this.sidebarOpen = true
+  }
+
+  setMobile(mobile: boolean) {
+    this.isMobile = mobile
+    // Auto-close sidebar on mobile by default
+    if (mobile) {
+      this.sidebarOpen = false
+    }
+  }
+}
+
 export const notesStore = new NotesStore()
+export const uiStore = new UIStore()

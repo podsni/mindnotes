@@ -1,10 +1,14 @@
 <script lang="ts">
-  import { notesStore } from './store.svelte'
+  import { notesStore, uiStore } from './store.svelte'
   import { router } from './router'
 
   const handleNewNote = async () => {
     const id = await notesStore.createNote('New Note', '')
     router.navigate(`/note/${id}`)
+    // Close sidebar on mobile after creating note
+    if (uiStore.isMobile) {
+      uiStore.closeSidebar()
+    }
   }
 </script>
 
@@ -102,5 +106,64 @@
 
   .feature-icon {
     font-size: 2rem;
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .welcome {
+      padding: 1.5rem;
+    }
+
+    .icon {
+      font-size: 4rem;
+    }
+
+    .welcome h1 {
+      font-size: 2rem;
+    }
+
+    .welcome p {
+      font-size: 1rem;
+    }
+
+    .btn-start {
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
+    }
+
+    .features {
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .feature {
+      font-size: 0.85rem;
+    }
+
+    .feature-icon {
+      font-size: 1.75rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .welcome {
+      padding: 1rem;
+    }
+
+    .icon {
+      font-size: 3.5rem;
+    }
+
+    .welcome h1 {
+      font-size: 1.75rem;
+    }
+
+    .welcome p {
+      font-size: 0.95rem;
+    }
+
+    .features {
+      gap: 1rem;
+    }
   }
 </style>
