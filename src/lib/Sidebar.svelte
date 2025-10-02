@@ -80,9 +80,29 @@
     return date.toLocaleDateString()
   }
 
-  // Swipe gesture handlers
+  // Swipe gesture handlers - only for safe areas
   const handleTouchStart = (e: TouchEvent) => {
+    const target = e.target as HTMLElement
+    
+    // Ignore touch on interactive elements
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'A' ||
+      target.tagName === 'SELECT' ||
+      target.closest('input') ||
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('.settings-section') ||
+      target.closest('.toolbar') ||
+      target.closest('.search-box')
+    ) {
+      isDragging = false
+      return
+    }
+    
     touchStartX = e.touches[0].clientX
+    touchCurrentX = e.touches[0].clientX
     isDragging = true
   }
 
@@ -96,8 +116,8 @@
     
     const diff = touchCurrentX - touchStartX
     
-    // Swipe left to close (threshold: 50px)
-    if (diff < -50 && uiStore.isMobile) {
+    // Swipe left to close (threshold: 80px for better control)
+    if (diff < -80 && uiStore.isMobile) {
       uiStore.closeSidebar()
     }
     
@@ -110,6 +130,7 @@
 <aside 
   class="sidebar" 
   class:open={uiStore.sidebarOpen}
+  class:dragging={isDragging}
   ontouchstart={handleTouchStart}
   ontouchmove={handleTouchMove}
   ontouchend={handleTouchEnd}
@@ -250,6 +271,12 @@
     overflow: hidden;
     transition: transform 0.3s ease, width 0.3s ease, background-color 0.3s;
     position: relative;
+    touch-action: pan-y; /* Allow vertical scrolling */
+  }
+
+  .sidebar.dragging {
+    transition: none; /* Disable transition during drag */
+    user-select: none;
   }
 
   /* Desktop: Collapsible sidebar */
