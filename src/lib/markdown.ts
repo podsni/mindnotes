@@ -1,11 +1,22 @@
 // Markdown utilities with cross-note linking support
 import { marked } from 'marked'
 import type { Note } from './db'
+import hljs from 'highlight.js'
+import DOMPurify from 'dompurify'
+import katex from 'katex'
+import mermaid from 'mermaid'
+
+// Initialize Mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'loose',
+})
 
 // Configure marked options
 marked.setOptions({
   breaks: true,
-  gfm: true,
+  gfm: true
 })
 
 // Custom renderer for cross-note links [[note-id]]
@@ -24,6 +35,33 @@ export function setNotesCache(notes: NoteLinkData[]) {
   notesCache = notes
 }
 
+// Override code rendering for Mermaid diagrams
+renderer.code = (code) => {
+  const codeStr = typeof code === 'string' ? code : code.text
+  const lang = typeof code === 'string' ? '' : code.lang || ''
+  
+  // Handle Mermaid diagrams
+  if (lang === 'mermaid') {
+    const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`
+    // Return a container that will be rendered by Mermaid later
+    return `<div class="mermaid-diagram" data-mermaid-id="${id}">${codeStr}</div>`
+  }
+  
+  // Handle syntax highlighting for code blocks
+  let highlighted = codeStr
+  if (lang && hljs.getLanguage(lang)) {
+    try {
+      highlighted = hljs.highlight(codeStr, { language: lang }).value
+    } catch (err) {
+      console.error('Highlight error:', err)
+    }
+  } else {
+    highlighted = hljs.highlightAuto(codeStr).value
+  }
+  
+  return `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
+}
+
 // Override link rendering to support [[...]] syntax
 const originalTextRenderer = renderer.text.bind(renderer)
 renderer.text = (text) => {
@@ -31,7 +69,7 @@ renderer.text = (text) => {
   const linkRegex = /\[\[([^\]]+)\]\]/g
   
   const textStr = typeof text === 'string' ? text : text.text
-  const replaced = textStr.replace(linkRegex, (_match: string, content: string) => {
+  let replaced = textStr.replace(linkRegex, (_match: string, content: string) => {
     // Try to find note by ID first
     const byId = notesCache.find(n => n.id?.toString() === content)
     if (byId) {
@@ -50,6 +88,31 @@ renderer.text = (text) => {
     return `<span class="note-link-missing" title="Note not found: ${content}">[[${content}]]</span>`
   })
   
+  // Handle inline math $...$ and block math $$...$$
+  // Block math first ($$...$$)
+  replaced = replaced.replace(/\$\$([^\$]+)\$\$/g, (_match: string, math: string) => {
+    try {
+      return katex.renderToString(math.trim(), {
+        displayMode: true,
+        throwOnError: false
+      })
+    } catch (err) {
+      return `<span class="math-error">Math Error: ${math}</span>`
+    }
+  })
+  
+  // Inline math ($...$)
+  replaced = replaced.replace(/\$([^\$]+)\$/g, (_match: string, math: string) => {
+    try {
+      return katex.renderToString(math.trim(), {
+        displayMode: false,
+        throwOnError: false
+      })
+    } catch (err) {
+      return `<span class="math-error">Math Error: ${math}</span>`
+    }
+  })
+  
   return replaced
 }
 
@@ -60,6 +123,24 @@ export function parseMarkdown(markdown: string): string {
   } catch (error) {
     console.error('Markdown parse error:', error)
     return markdown
+  }
+}
+
+// Render Mermaid diagrams after DOM insertion
+export async function renderMermaidDiagrams(container: HTMLElement) {
+  const diagrams = container.querySelectorAll('.mermaid-diagram')
+  
+  for (const diagram of diagrams) {
+    const id = diagram.getAttribute('data-mermaid-id')
+    const code = diagram.textContent || ''
+    
+    try {
+      const { svg } = await mermaid.render(`mermaid-${id}`, code)
+      diagram.innerHTML = svg
+    } catch (err) {
+      console.error('Mermaid render error:', err)
+      diagram.innerHTML = `<div class="mermaid-error">Mermaid Error: ${err}</div>`
+    }
   }
 }
 
@@ -101,11 +182,10 @@ export function getBacklinks(noteId: number, allNotes: Note[]): Note[] {
   return backlinks
 }
 
-// Sanitize HTML to prevent XSS
+// Sanitize HTML to prevent XSS using DOMPurify
 export function sanitizeHtml(html: string): string {
-  // Basic sanitization - in production, use DOMPurify
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+="[^"]*"/g, '')
-    .replace(/on\w+='[^']*'/g, '')
+  return DOMPurify.sanitize(html, {
+    ADD_TAGS: ['svg', 'g', 'path', 'rect', 'circle', 'line', 'text', 'tspan', 'foreignObject'],
+    ADD_ATTR: ['style', 'class', 'id', 'data-mermaid-id', 'transform', 'viewBox', 'xmlns', 'xmlns:xlink', 'x', 'y', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'd', 'cx', 'cy', 'r', 'x1', 'y1', 'x2', 'y2', 'font-size', 'text-anchor']
+  })
 }

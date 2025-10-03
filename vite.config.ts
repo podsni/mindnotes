@@ -29,6 +29,8 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // Increase maximum file size to cache (default is 2MB, increase to 5MB for Mermaid)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
         // Cache all static assets
         globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,woff2}'],
         // Runtime caching strategies

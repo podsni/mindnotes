@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { parseMarkdown, sanitizeHtml, setNotesCache } from './markdown'
+  import { onMount } from 'svelte'
+  import { parseMarkdown, sanitizeHtml, setNotesCache, renderMermaidDiagrams } from './markdown'
   import { notesStore } from './store.svelte'
   
   interface Props {
@@ -7,6 +8,7 @@
   }
   
   let { content }: Props = $props()
+  let previewContainer: HTMLDivElement | undefined = $state()
   
   // Update notes cache for cross-linking
   $effect(() => {
@@ -18,9 +20,21 @@
     const parsed = parseMarkdown(content)
     return sanitizeHtml(parsed)
   })
+  
+  // Render Mermaid diagrams after HTML is inserted
+  $effect(() => {
+    if (previewContainer) {
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        if (previewContainer) {
+          renderMermaidDiagrams(previewContainer)
+        }
+      }, 50)
+    }
+  })
 </script>
 
-<div class="markdown-preview">
+<div class="markdown-preview" bind:this={previewContainer}>
   {@html html()}
 </div>
 
@@ -207,6 +221,94 @@
     margin-right: 0.5rem;
   }
 
+  /* Syntax highlighting (highlight.js) */
+  .markdown-preview :global(.hljs) {
+    background: var(--card-bg);
+    color: var(--text-color);
+  }
+
+  .markdown-preview :global(.hljs-keyword),
+  .markdown-preview :global(.hljs-selector-tag),
+  .markdown-preview :global(.hljs-literal),
+  .markdown-preview :global(.hljs-section),
+  .markdown-preview :global(.hljs-link) {
+    color: #569cd6;
+  }
+
+  .markdown-preview :global(.hljs-string),
+  .markdown-preview :global(.hljs-title),
+  .markdown-preview :global(.hljs-name),
+  .markdown-preview :global(.hljs-type),
+  .markdown-preview :global(.hljs-attribute),
+  .markdown-preview :global(.hljs-symbol),
+  .markdown-preview :global(.hljs-bullet),
+  .markdown-preview :global(.hljs-built_in),
+  .markdown-preview :global(.hljs-addition),
+  .markdown-preview :global(.hljs-variable),
+  .markdown-preview :global(.hljs-template-tag),
+  .markdown-preview :global(.hljs-template-variable) {
+    color: #ce9178;
+  }
+
+  .markdown-preview :global(.hljs-comment),
+  .markdown-preview :global(.hljs-quote),
+  .markdown-preview :global(.hljs-deletion),
+  .markdown-preview :global(.hljs-meta) {
+    color: #6a9955;
+  }
+
+  .markdown-preview :global(.hljs-number),
+  .markdown-preview :global(.hljs-regexp),
+  .markdown-preview :global(.hljs-function) {
+    color: #dcdcaa;
+  }
+
+  /* KaTeX Math */
+  .markdown-preview :global(.katex) {
+    font-size: 1.1em;
+  }
+
+  .markdown-preview :global(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 1rem 0;
+    padding: 0.5rem;
+  }
+
+  .markdown-preview :global(.math-error) {
+    color: #ff4444;
+    font-style: italic;
+    background: rgba(255, 68, 68, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  /* Mermaid diagrams */
+  .markdown-preview :global(.mermaid-diagram) {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .markdown-preview :global(.mermaid-diagram svg) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .markdown-preview :global(.mermaid-error) {
+    color: #ff4444;
+    font-style: italic;
+    padding: 1rem;
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: 4px;
+  }
+
   /* Mobile optimization */
   @media (max-width: 768px) {
     .markdown-preview {
@@ -227,6 +329,14 @@
 
     .markdown-preview :global(pre) {
       font-size: 0.85rem;
+    }
+
+    .markdown-preview :global(.mermaid-diagram) {
+      padding: 0.5rem;
+    }
+
+    .markdown-preview :global(.katex-display) {
+      font-size: 0.9em;
     }
   }
 </style>

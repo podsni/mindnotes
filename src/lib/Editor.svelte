@@ -15,8 +15,10 @@
   let titleInput: HTMLInputElement | undefined = $state()
   let contentTextarea: HTMLTextAreaElement | undefined = $state()
   let previewMode = $state(false)
+  let splitView = $state(false)
   let backlinks = $state<NoteMetadata[]>([])
   let activeTab: 'editor' | 'attachments' = $state('editor')
+  let isDragging = $state(false)
   
   // Load note when component mounts or ID changes
   $effect(() => {
@@ -75,6 +77,78 @@
 
   const togglePreview = () => {
     previewMode = !previewMode
+    if (previewMode) {
+      splitView = false // Disable split view when entering full preview
+    }
+  }
+
+  const toggleSplitView = () => {
+    splitView = !splitView
+    if (splitView) {
+      previewMode = false // Disable full preview when entering split view
+    }
+  }
+
+  // Handle drag and drop
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault()
+    isDragging = true
+  }
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault()
+    isDragging = false
+  }
+
+  const handleDrop = async (e: DragEvent) => {
+    e.preventDefault()
+    isDragging = false
+
+    const files = e.dataTransfer?.files
+    if (!files || files.length === 0) return
+
+    const noteId = parseInt(id)
+    if (isNaN(noteId)) return
+
+    let insertText = ''
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      
+      // Handle image files
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = (evt) => {
+          const base64 = evt.target?.result as string
+          const imageMarkdown = `\n![${file.name}](${base64})\n`
+          
+          // Insert at cursor position or append
+          if (contentTextarea) {
+            const cursorPos = contentTextarea.selectionStart || 0
+            const currentContent = notesStore.currentNote?.content || ''
+            const newContent = currentContent.slice(0, cursorPos) + imageMarkdown + currentContent.slice(cursorPos)
+            notesStore.updateNote(noteId, { content: newContent })
+          }
+        }
+        reader.readAsDataURL(file)
+      } 
+      // Handle other files (create link)
+      else {
+        const reader = new FileReader()
+        reader.onload = (evt) => {
+          const base64 = evt.target?.result as string
+          const fileMarkdown = `\n[📎 ${file.name}](${base64})\n`
+          
+          if (contentTextarea) {
+            const cursorPos = contentTextarea.selectionStart || 0
+            const currentContent = notesStore.currentNote?.content || ''
+            const newContent = currentContent.slice(0, cursorPos) + fileMarkdown + currentContent.slice(cursorPos)
+            notesStore.updateNote(noteId, { content: newContent })
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    }
   }
 
   // Auto-resize textarea for mobile
@@ -112,6 +186,14 @@
         placeholder="Note title..."
       />
       <div class="header-actions">
+        <button 
+          onclick={toggleSplitView} 
+          class="btn-split" 
+          class:active={splitView}
+          title={splitView ? 'Exit split view' : 'Split view (editor ⬅➡ preview)'}
+        >
+          ⬅➡
+        </button>
         <button 
           onclick={togglePreview} 
           class="btn-preview" 
@@ -152,21 +234,78 @@
       </button>
     </div>
     
-    <div class="editor-content">
+    <div 
+      class="editor-content" 
+      class:split-view={splitView}
+      class:dragging={isDragging}
+      ondragover={handleDragOver}
+      ondragleave={handleDragLeave}
+      ondrop={handleDrop}
+      role="application"
+      aria-label="Note editor with drag and drop support"
+    >
       {#if activeTab === 'editor'}
         {#if previewMode}
           <MarkdownPreview content={notesStore.currentNote.content} />
+        {:else if splitView}
+          <!-- Split view: editor on left, preview on right -->
+          <div class="split-container">
+            <div class="split-pane editor-pane">
+              <textarea
+                bind:this={contentTextarea}
+                class="content-textarea editor-text"
+                value={notesStore.currentNote.content}
+                oninput={handleContentChange}
+                placeholder="Start writing your note... Use [[note-title]] for cross-note links
+
+📝 Markdown features:
+• Headers: # H1, ## H2, ### H3
+• Links: [[note-title]] or [text](url)
+• Images: drag & drop or ![alt](url)
+• Code: ```language or inline `code`
+• Math: $inline$ or $$block$$
+• Mermaid: ```mermaid
+• Lists: - bullet or 1. numbered
+• Tables: | col1 | col2 |
+• Checkboxes: - [ ] task"
+              ></textarea>
+            </div>
+            <div class="split-divider"></div>
+            <div class="split-pane preview-pane">
+              <MarkdownPreview content={notesStore.currentNote.content} />
+            </div>
+          </div>
         {:else}
           <textarea
             bind:this={contentTextarea}
             class="content-textarea editor-text"
             value={notesStore.currentNote.content}
             oninput={handleContentChange}
-            placeholder="Start writing your note... Use [[note-title]] for cross-note links"
+            placeholder="Start writing your note... Use [[note-title]] for cross-note links
+
+📝 Markdown features:
+• Headers: # H1, ## H2, ### H3
+• Links: [[note-title]] or [text](url)
+• Images: drag & drop or ![alt](url)
+• Code: ```language or inline `code`
+• Math: $inline$ or $$block$$
+• Mermaid: ```mermaid
+• Lists: - bullet or 1. numbered
+• Tables: | col1 | col2 |
+• Checkboxes: - [ ] task"
           ></textarea>
         {/if}
       {:else}
         <AttachmentManager noteId={parseInt(id)} />
+      {/if}
+      
+      <!-- Drag overlay -->
+      {#if isDragging}
+        <div class="drag-overlay">
+          <div class="drag-message">
+            📁 Drop files here to embed
+          </div>
+        </div>
       {/if}
     </div>
 
@@ -290,6 +429,84 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
+  }
+
+  /* Split view styles */
+  .editor-content.split-view {
+    overflow: visible;
+  }
+
+  .split-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .split-pane {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .editor-pane {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-pane {
+    background: var(--bg-color);
+  }
+
+  .split-divider {
+    width: 4px;
+    background: var(--border-color);
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .split-divider:hover {
+    background: var(--primary-color);
+  }
+
+  /* Drag and drop styles */
+  .editor-content.dragging::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 122, 204, 0.1);
+    border: 3px dashed var(--primary-color);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  .drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 122, 204, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .drag-message {
+    background: var(--primary-color);
+    color: white;
+    padding: 2rem 3rem;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 122, 204, 0.4);
   }
 
   .title-input {
@@ -308,6 +525,7 @@
     color: var(--text-secondary);
   }
 
+  .btn-split,
   .btn-preview,
   .btn-pin,
   .btn-delete {
@@ -319,6 +537,14 @@
     transition: all 0.2s;
     padding: 0.5rem;
     border-radius: 4px;
+  }
+
+  .btn-split:hover,
+  .btn-split.active {
+    opacity: 1;
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
   }
 
   .btn-preview:hover,
@@ -539,6 +765,21 @@
       right: 1.5rem;
       width: 60px;
       height: 60px;
+    }
+
+    /* Disable split view on mobile, stack vertically instead */
+    .split-container {
+      flex-direction: column;
+    }
+
+    .split-divider {
+      width: 100%;
+      height: 4px;
+      cursor: row-resize;
+    }
+
+    .btn-split {
+      display: none; /* Hide split view button on mobile */
     }
   }
 
