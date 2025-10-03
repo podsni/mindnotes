@@ -310,6 +310,9 @@
   $effect(() => {
     if (canvasElement && pdfDoc) {
       renderPage(currentPage)
+      if (showMinimap) {
+        generateMinimap()
+      }
     }
   })
 </script>
@@ -330,7 +333,7 @@
 
     <div class="zoom-controls">
       <button onclick={zoomOut} disabled={scale <= 0.5}>−</button>
-      <span>{Math.round(scale * 100)}%</span>
+      <span class="zoom-level" title="Pinch to zoom on touch devices">{Math.round(scale * 100)}%</span>
       <button onclick={zoomIn} disabled={scale >= 3}>+</button>
     </div>
 
@@ -366,6 +369,7 @@
 
   <div 
     class="pdf-canvas-container"
+    class:panning={isPanning}
     bind:this={containerElement}
     ontouchstart={handleTouchStart}
     ontouchmove={handleTouchMove}
@@ -428,6 +432,13 @@
           </div>
         </div>
       {/if}
+
+      <!-- Touch gesture hint (shows briefly on mobile) -->
+      <div class="touch-hint">
+        <div class="hint-item">👆 Double tap to zoom</div>
+        <div class="hint-item">🤏 Pinch to zoom</div>
+        <div class="hint-item">👆 Drag to pan</div>
+      </div>
     {/if}
   </div>
 </div>
@@ -512,6 +523,13 @@
     font-weight: 500;
   }
 
+  .zoom-level {
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 50px;
+    text-align: center;
+  }
+
   .search-results {
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -526,16 +544,128 @@
     padding: 2rem;
     position: relative;
     background: var(--bg-color);
+    touch-action: none; /* Disable default touch behaviors */
   }
 
   canvas {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     background: white;
     border-radius: 4px;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   canvas.annotation-cursor {
     cursor: crosshair;
+  }
+
+  /* Minimap */
+  .minimap-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    padding: 0.5rem;
+    z-index: 100;
+    max-width: 200px;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .minimap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .minimap-header span {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .minimap-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .minimap-close:hover {
+    color: var(--text-color);
+    background: var(--hover-bg);
+    border-radius: 4px;
+  }
+
+  .minimap-canvas {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  /* Touch feedback */
+  .pdf-canvas-container.panning {
+    cursor: grabbing;
+  }
+
+  /* Touch gesture hints */
+  .touch-hint {
+    position: fixed;
+    bottom: 2rem;
+    left: 2rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 99;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  /* Show hints on touch devices or when panning */
+  @media (hover: none) and (pointer: coarse) {
+    .touch-hint {
+      animation: fadeInOut 5s ease-in-out;
+    }
+  }
+
+  @keyframes fadeInOut {
+    0%, 100% { opacity: 0; }
+    10%, 90% { opacity: 0.9; }
+  }
+
+  .hint-item {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0;
+    white-space: nowrap;
   }
 
   .loading {
