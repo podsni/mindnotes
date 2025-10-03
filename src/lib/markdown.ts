@@ -11,10 +11,16 @@ marked.setOptions({
 // Custom renderer for cross-note links [[note-id]]
 const renderer = new marked.Renderer()
 
-// Store reference to notes for linking
-let notesCache: Note[] = []
+// Minimal interface for cross-linking (only need id and title)
+interface NoteLinkData {
+  id?: number
+  title: string
+}
 
-export function setNotesCache(notes: Note[]) {
+// Store reference to notes for linking
+let notesCache: NoteLinkData[] = []
+
+export function setNotesCache(notes: NoteLinkData[]) {
   notesCache = notes
 }
 
