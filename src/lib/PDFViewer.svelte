@@ -23,6 +23,7 @@
   let searchQuery: string = $state('')
   let searchResults: string = $state('')
   let canvasElement: HTMLCanvasElement | null = $state(null)
+  let containerElement: HTMLDivElement | null = $state(null)
   let annotations: PDFAnnotation[] = $state(attachment.metadata?.annotations || [])
   
   // Annotation mode
@@ -30,6 +31,14 @@
   let newCommentText: string = $state('')
   let showCommentInput: boolean = $state(false)
   let commentPosition: { x: number; y: number } | null = $state(null)
+
+  // Touch/Pan/Zoom state
+  let isPanning: boolean = $state(false)
+  let panStart: { x: number; y: number } = $state({ x: 0, y: 0 })
+  let panOffset: { x: number; y: number } = $state({ x: 0, y: 0 })
+  let lastTouchDistance: number = $state(0)
+  let showMinimap: boolean = $state(false)
+  let minimapCanvas: HTMLCanvasElement | null = $state(null)
 
   onMount(async () => {
     await loadPDF()
@@ -154,6 +163,121 @@
     }
   }
 
+  // Touch and Pan handlers
+  function handleTouchStart(event: TouchEvent) {
+    if (event.touches.length === 1) {
+      // Single touch - pan
+      isPanning = true
+      panStart = {
+        x: event.touches[0].clientX - panOffset.x,
+        y: event.touches[0].clientY - panOffset.y
+      }
+    } else if (event.touches.length === 2) {
+      // Two fingers - pinch zoom
+      const touch1 = event.touches[0]
+      const touch2 = event.touches[1]
+      lastTouchDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+    }
+  }
+
+  function handleTouchMove(event: TouchEvent) {
+    if (event.touches.length === 1 && isPanning) {
+      // Pan
+      event.preventDefault()
+      panOffset = {
+        x: event.touches[0].clientX - panStart.x,
+        y: event.touches[0].clientY - panStart.y
+      }
+      if (containerElement) {
+        containerElement.scrollLeft = -panOffset.x
+        containerElement.scrollTop = -panOffset.y
+      }
+    } else if (event.touches.length === 2) {
+      // Pinch zoom
+      event.preventDefault()
+      const touch1 = event.touches[0]
+      const touch2 = event.touches[1]
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+      
+      if (lastTouchDistance > 0) {
+        const delta = distance - lastTouchDistance
+        const zoomFactor = delta > 0 ? 0.05 : -0.05
+        scale = Math.max(0.5, Math.min(3, scale + zoomFactor))
+        renderPage(currentPage)
+      }
+      
+      lastTouchDistance = distance
+    }
+  }
+
+  function handleTouchEnd() {
+    isPanning = false
+    lastTouchDistance = 0
+  }
+
+  // Mouse wheel zoom
+  function handleWheel(event: WheelEvent) {
+    if (event.ctrlKey) {
+      event.preventDefault()
+      const delta = event.deltaY > 0 ? -0.1 : 0.1
+      scale = Math.max(0.5, Math.min(3, scale + delta))
+      renderPage(currentPage)
+    }
+  }
+
+  // Double tap to zoom
+  let lastTapTime = 0
+  function handleDoubleTap(event: TouchEvent) {
+    const now = Date.now()
+    if (now - lastTapTime < 300) {
+      // Double tap detected
+      if (scale > 1) {
+        scale = 1
+      } else {
+        scale = 2
+      }
+      renderPage(currentPage)
+    }
+    lastTapTime = now
+  }
+
+  // Generate minimap thumbnail
+  async function generateMinimap() {
+    if (!pdfDoc || !minimapCanvas) return
+    
+    try {
+      const page = await pdfDoc.getPage(currentPage)
+      const viewport = page.getViewport({ scale: 0.2 })
+      const context = minimapCanvas.getContext('2d')
+      
+      if (!context) return
+      
+      minimapCanvas.height = viewport.height
+      minimapCanvas.width = viewport.width
+      
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+        canvas: minimapCanvas
+      }).promise
+    } catch (error) {
+      console.error('Failed to generate minimap:', error)
+    }
+  }
+
+  function toggleMinimap() {
+    showMinimap = !showMinimap
+    if (showMinimap) {
+      generateMinimap()
+    }
+  }
+
   async function saveComment() {
     if (!commentPosition || !newCommentText.trim()) return
 
@@ -217,6 +341,13 @@
       >
         💬 Comment
       </button>
+      <button
+        class:active={showMinimap}
+        onclick={toggleMinimap}
+        title="Toggle minimap"
+      >
+        🗺️ Map
+      </button>
     </div>
 
     <div class="search-controls">
@@ -233,15 +364,34 @@
     </div>
   </div>
 
-  <div class="pdf-canvas-container">
+  <div 
+    class="pdf-canvas-container"
+    bind:this={containerElement}
+    ontouchstart={handleTouchStart}
+    ontouchmove={handleTouchMove}
+    ontouchend={handleTouchEnd}
+    onwheel={handleWheel}
+  >
     {#if isLoading}
       <div class="loading">Loading PDF...</div>
     {:else}
       <canvas
         bind:this={canvasElement}
         onclick={handleCanvasClick}
+        ontouchstart={handleDoubleTap}
         class:annotation-cursor={annotationMode !== 'none'}
       ></canvas>
+
+      <!-- Minimap -->
+      {#if showMinimap}
+        <div class="minimap-container">
+          <div class="minimap-header">
+            <span>Page {currentPage}/{totalPages}</span>
+            <button onclick={toggleMinimap} class="minimap-close">×</button>
+          </div>
+          <canvas bind:this={minimapCanvas} class="minimap-canvas"></canvas>
+        </div>
+      {/if}
 
       <!-- Comment annotations overlay -->
       {#each annotations.filter(a => a.pageNumber === currentPage && a.type === 'comment') as annotation}
