@@ -23,6 +23,10 @@
   let sortDirection: 'asc' | 'desc' = $state('asc')
   let isEditing: boolean = $state(false)
   let editedData: any[][] = $state([])
+  
+  // Table zoom state
+  let tableZoom: number = $state(1)
+  let tableContainer: HTMLDivElement | null = $state(null)
 
   onMount(async () => {
     await loadCSV()
@@ -191,6 +195,19 @@
     URL.revokeObjectURL(url)
   }
 
+  // Table zoom functions
+  function zoomTableIn() {
+    tableZoom = Math.min(tableZoom + 0.1, 2)
+  }
+
+  function zoomTableOut() {
+    tableZoom = Math.max(tableZoom - 0.1, 0.5)
+  }
+
+  function resetTableZoom() {
+    tableZoom = 1
+  }
+
   function addRow() {
     if (!csvData) return
     const newRow = csvData.headers.map(() => '')
@@ -242,6 +259,15 @@
       </button>
     </div>
 
+    <div class="toolbar-section zoom-section">
+      <button onclick={zoomTableOut} disabled={tableZoom <= 0.5}>−</button>
+      <span class="zoom-display" title="Table zoom">{Math.round(tableZoom * 100)}%</span>
+      <button onclick={zoomTableIn} disabled={tableZoom >= 2}>+</button>
+      {#if tableZoom !== 1}
+        <button onclick={resetTableZoom} class="reset-zoom">Reset</button>
+      {/if}
+    </div>
+
     {#if csvData}
       <div class="stats">
         {csvData.rows.length} rows × {csvData.headers.length} columns
@@ -252,14 +278,14 @@
     {/if}
   </div>
 
-  <div class="csv-content">
+  <div class="csv-content" bind:this={tableContainer}>
     {#if isLoading}
       <div class="loading">Loading CSV...</div>
     {:else if error}
       <div class="error">{error}</div>
     {:else if csvData}
       <div class="table-container">
-        <table>
+        <table style="transform: scale({tableZoom}); transform-origin: top left;">
           <thead>
             <tr>
               {#if isEditing}
@@ -388,6 +414,40 @@
 
   button.delete-btn:hover {
     background: #da190b;
+  }
+
+  button.reset-zoom {
+    background: var(--border-color);
+    color: var(--text-color);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  button.reset-zoom:hover {
+    background: var(--hover-bg);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .zoom-section {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    padding: 0 0.5rem;
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+  }
+
+  .zoom-display {
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 45px;
+    text-align: center;
+    font-size: 0.85rem;
   }
 
   .stats {
@@ -532,6 +592,13 @@
       width: 100%;
     }
 
+    .zoom-section {
+      width: auto;
+      border: none;
+      padding: 0;
+      justify-content: center;
+    }
+
     .search-input {
       min-width: 100%;
     }
@@ -551,6 +618,26 @@
       text-align: center;
       margin-left: 0;
       margin-top: 0.5rem;
+    }
+  }
+
+  /* Touch hint for mobile */
+  @media (hover: none) and (pointer: coarse) {
+    .csv-content::before {
+      content: '👆 Swipe to scroll • Pinch zoom available';
+      display: block;
+      text-align: center;
+      padding: 0.5rem;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      animation: fadeOut 4s ease-in-out forwards;
+    }
+
+    @keyframes fadeOut {
+      0%, 70% { opacity: 1; }
+      100% { opacity: 0; pointer-events: none; }
     }
   }
 </style>
