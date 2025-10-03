@@ -20,6 +20,11 @@
   let activeTab: 'editor' | 'attachments' = $state('editor')
   let isDragging = $state(false)
   
+  // Scroll sync for split view
+  let previewPane: HTMLDivElement | undefined = $state()
+  let isScrollingSynced = $state(false) // Prevent infinite loop
+  let scrollSyncTimeout: number | null = null
+  
   // Load note when component mounts or ID changes
   $effect(() => {
     const noteId = parseInt(id)
@@ -88,6 +93,52 @@
       previewMode = false // Disable full preview when entering split view
     }
   }
+
+  // Scroll synchronization between editor and preview (real-time)
+  const handleEditorScroll = (e: Event) => {
+    if (!splitView || !contentTextarea || !previewPane || isScrollingSynced) return
+    
+    const target = e.target as HTMLElement
+    const maxScroll = target.scrollHeight - target.clientHeight
+    
+    // Prevent division by zero
+    if (maxScroll <= 0) return
+    
+    const scrollPercentage = target.scrollTop / maxScroll
+    
+    // Direct sync without RAF for instant response
+    isScrollingSynced = true
+    const previewMaxScroll = previewPane.scrollHeight - previewPane.clientHeight
+    previewPane.scrollTop = scrollPercentage * previewMaxScroll
+    
+    // Reset flag immediately on next tick
+    setTimeout(() => { isScrollingSynced = false }, 0)
+  }
+
+  const handlePreviewScroll = (e: Event) => {
+    if (!splitView || !contentTextarea || !previewPane || isScrollingSynced) return
+    
+    const target = e.target as HTMLElement
+    const maxScroll = target.scrollHeight - target.clientHeight
+    
+    // Prevent division by zero
+    if (maxScroll <= 0) return
+    
+    const scrollPercentage = target.scrollTop / maxScroll
+    
+    // Direct sync without RAF for instant response
+    isScrollingSynced = true
+    const textareaMaxScroll = contentTextarea.scrollHeight - contentTextarea.clientHeight
+    contentTextarea.scrollTop = scrollPercentage * textareaMaxScroll
+    
+    // Reset flag immediately on next tick
+    setTimeout(() => { isScrollingSynced = false }, 0)
+  }
+
+  // Cleanup on destroy
+  onDestroy(() => {
+    if (scrollSyncTimeout) cancelAnimationFrame(scrollSyncTimeout)
+  })
 
   // Handle drag and drop
   const handleDragOver = (e: DragEvent) => {
@@ -246,16 +297,17 @@
     >
       {#if activeTab === 'editor'}
         {#if previewMode}
-          <MarkdownPreview content={notesStore.currentNote.content} />
+          <MarkdownPreview content={notesStore.currentNote.content} mode="full" />
         {:else if splitView}
           <!-- Split view: editor on left, preview on right -->
           <div class="split-container">
             <div class="split-pane editor-pane">
               <textarea
                 bind:this={contentTextarea}
-                class="content-textarea editor-text"
+                class="content-textarea editor-text split-textarea"
                 value={notesStore.currentNote.content}
                 oninput={handleContentChange}
+                onscroll={handleEditorScroll}
                 placeholder="Start writing your note... Use [[note-title]] for cross-note links
 
 📝 Markdown features:
@@ -271,8 +323,12 @@
               ></textarea>
             </div>
             <div class="split-divider"></div>
-            <div class="split-pane preview-pane">
-              <MarkdownPreview content={notesStore.currentNote.content} />
+            <div 
+              class="split-pane preview-pane" 
+              bind:this={previewPane}
+              onscroll={handlePreviewScroll}
+            >
+              <MarkdownPreview content={notesStore.currentNote.content} mode="split" />
             </div>
           </div>
         {:else}
@@ -426,7 +482,7 @@
 
   .editor-content {
     flex: 1;
-    overflow: hidden;
+    overflow: auto; /* Allow scrolling for full preview mode */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -434,7 +490,7 @@
 
   /* Split view styles */
   .editor-content.split-view {
-    overflow: visible;
+    overflow: hidden; /* In split view, children handle scroll */
   }
 
   .split-container {
@@ -446,17 +502,34 @@
 
   .split-pane {
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden; /* Prevent double scrollbar */
+    display: flex;
+    flex-direction: column;
+    position: relative;
   }
 
   .editor-pane {
     display: flex;
     flex-direction: column;
+    height: 100%;
   }
 
   .preview-pane {
     background: var(--bg-color);
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Remove smooth scroll for instant sync */
+    -webkit-overflow-scrolling: touch; /* Better mobile scrolling */
+  }
+
+  /* Textarea in split view needs to be scrollable */
+  .split-textarea {
+    flex: 1;
+    height: 100%;
+    overflow-y: scroll !important; /* Force scrollbar to always show */
+    overflow-x: hidden;
+    /* Remove smooth scroll for instant sync */
+    -webkit-overflow-scrolling: touch; /* Better mobile scrolling */
   }
 
   .split-divider {

@@ -6,9 +6,10 @@
   
   interface Props {
     content: string
+    mode?: 'full' | 'split' // Add mode prop
   }
   
-  let { content }: Props = $props()
+  let { content, mode = 'full' }: Props = $props()
   let previewContainer: HTMLDivElement | undefined = $state()
   let viewerSvg: string = $state('')
   let showViewer: boolean = $state(false)
@@ -49,7 +50,7 @@
   }
 </script>
 
-<div class="markdown-preview" bind:this={previewContainer}>
+<div class="markdown-preview" class:full-mode={mode === 'full'} class:split-mode={mode === 'split'} bind:this={previewContainer}>
   {@html html()}
 </div>
 
@@ -64,8 +65,20 @@
     margin: 0 auto;
     line-height: 1.8;
     color: var(--text-color);
-    overflow-y: auto;
+  }
+
+  /* Full preview mode - needs to be scrollable */
+  .markdown-preview.full-mode {
     height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Split view mode - parent handles scroll */
+  .markdown-preview.split-mode {
+    height: 100%;
+    min-height: 100%;
+    overflow: visible;
   }
 
   /* Typography */
