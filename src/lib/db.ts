@@ -103,6 +103,22 @@ export const noteService = {
     return JSON.stringify(exportData, null, 2)
   },
 
+  // Export all notes to Markdown
+  async exportNotesToMarkdown(): Promise<string> {
+    const notes = await db.notes.toArray()
+    let markdown = `# MindNote Export\n\nExported on: ${new Date().toLocaleString()}\n\nTotal Notes: ${notes.length}\n\n---\n\n`
+    
+    for (const note of notes) {
+      const date = new Date(note.updatedAt).toLocaleString()
+      markdown += `## ${note.title}\n\n`
+      markdown += `*Updated: ${date}*${note.pinned ? ' 📌 **Pinned**' : ''}\n\n`
+      markdown += `${note.content}\n\n`
+      markdown += `---\n\n`
+    }
+    
+    return markdown
+  },
+
   // Import notes from JSON
   async importNotes(jsonString: string): Promise<number> {
     try {
@@ -121,6 +137,43 @@ export const noteService = {
     } catch (error) {
       console.error('Import failed:', error)
       throw new Error('Invalid JSON format')
+    }
+  },
+
+  // Import from Markdown (basic parser)
+  async importFromMarkdown(markdown: string): Promise<number> {
+    try {
+      // Split by --- separator
+      const sections = markdown.split(/\n---\n+/)
+      let imported = 0
+      
+      for (const section of sections) {
+        // Skip empty sections and header
+        if (!section.trim() || section.includes('# MindNote Export')) continue
+        
+        // Extract title (first ## heading)
+        const titleMatch = section.match(/##\s+(.+)/)
+        if (!titleMatch) continue
+        
+        const title = titleMatch[1].trim()
+        
+        // Extract content (everything after the metadata line)
+        const contentMatch = section.match(/\*Updated:.*\*.*?\n\n([\s\S]+)/)
+        const content = contentMatch ? contentMatch[1].trim() : ''
+        
+        // Check if pinned
+        const pinned = section.includes('📌 **Pinned**')
+        
+        if (title) {
+          await this.createNote(title, content, pinned)
+          imported++
+        }
+      }
+      
+      return imported
+    } catch (error) {
+      console.error('Markdown import failed:', error)
+      throw new Error('Invalid Markdown format')
     }
   }
 }

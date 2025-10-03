@@ -3,8 +3,7 @@
   import { router } from './router'
   import type { Note } from './db'
   import VirtualList from 'svelte-virtual-list'
-  import FontSelector from './FontSelector.svelte'
-  import ThemeSelector from './ThemeSelector.svelte'
+  import Settings from './Settings.svelte'
 
   let searchInput = $state('')
   let touchStartX = $state(0)
@@ -93,7 +92,7 @@
       target.closest('input') ||
       target.closest('button') ||
       target.closest('a') ||
-      target.closest('.settings-section') ||
+      target.closest('.settings-container') ||
       target.closest('.toolbar') ||
       target.closest('.search-box')
     ) {
@@ -159,13 +158,8 @@
     </label>
   </div>
 
-  <div class="settings-section">
-    <ThemeSelector />
-  </div>
-
-  <div class="settings-section">
-    <FontSelector />
-  </div>
+  <!-- Settings (Theme, Font, Export/Import) -->
+  <Settings />
 
   <div class="search-box">
     <input
@@ -383,11 +377,6 @@
   .btn-tool:hover {
     background: var(--hover-bg);
     border-color: var(--primary-color);
-  }
-
-  .settings-section {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border-color);
   }
 
   .search-box {

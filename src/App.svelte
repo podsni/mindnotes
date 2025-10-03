@@ -3,9 +3,11 @@
   import Sidebar from './lib/Sidebar.svelte'
   import Editor from './lib/Editor.svelte'
   import Home from './lib/Home.svelte'
+  import OfflineIndicator from './lib/OfflineIndicator.svelte'
   import { notesStore, uiStore } from './lib/store.svelte'
   import { router } from './lib/router'
   import { initTouchHandlers } from './lib/touchHandler.svelte'
+  import { registerSW } from 'virtual:pwa-register'
 
   let currentRoute = $state<{ path: string; params: Record<string, string> }>({ path: '/', params: {} })
 
@@ -48,6 +50,18 @@
     
     // Initialize touch handlers for swipe gestures
     const cleanupTouch = initTouchHandlers()
+
+    // Register Service Worker for PWA
+    const updateSW = registerSW({
+      onNeedRefresh() {
+        if (confirm('New version available! Reload to update?')) {
+          updateSW(true)
+        }
+      },
+      onOfflineReady() {
+        console.log('App is ready to work offline')
+      },
+    })
 
     return () => {
       window.removeEventListener('resize', checkMobile)
@@ -105,6 +119,9 @@
       <Home />
     {/if}
   </main>
+
+  <!-- Offline Indicator -->
+  <OfflineIndicator />
 
   <!-- FAB (Floating Action Button) for mobile -->
   {#if uiStore.isMobile}
