@@ -127,7 +127,10 @@ export function parseMarkdown(markdown: string): string {
 }
 
 // Render Mermaid diagrams after DOM insertion
-export async function renderMermaidDiagrams(container: HTMLElement) {
+export async function renderMermaidDiagrams(
+  container: HTMLElement, 
+  onZoomClick?: (svg: string) => void
+) {
   const diagrams = container.querySelectorAll('.mermaid-diagram')
   
   for (const diagram of diagrams) {
@@ -136,7 +139,40 @@ export async function renderMermaidDiagrams(container: HTMLElement) {
     
     try {
       const { svg } = await mermaid.render(`mermaid-${id}`, code)
-      diagram.innerHTML = svg
+      
+      // Create wrapper with zoom button
+      const wrapper = document.createElement('div')
+      wrapper.className = 'mermaid-wrapper'
+      
+      const svgContainer = document.createElement('div')
+      svgContainer.className = 'mermaid-svg-container'
+      svgContainer.innerHTML = svg
+      
+      // Add zoom button if callback provided
+      if (onZoomClick) {
+        const zoomBtn = document.createElement('button')
+        zoomBtn.className = 'mermaid-zoom-btn'
+        zoomBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="11" y1="8" x2="11" y2="14"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Zoom</span>
+        `
+        zoomBtn.title = 'View full diagram (interactive)'
+        zoomBtn.onclick = (e) => {
+          e.stopPropagation()
+          onZoomClick(svg)
+        }
+        
+        wrapper.appendChild(zoomBtn)
+      }
+      
+      wrapper.appendChild(svgContainer)
+      diagram.innerHTML = ''
+      diagram.appendChild(wrapper)
     } catch (err) {
       console.error('Mermaid render error:', err)
       diagram.innerHTML = `<div class="mermaid-error">Mermaid Error: ${err}</div>`

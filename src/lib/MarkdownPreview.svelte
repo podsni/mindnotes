@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { parseMarkdown, sanitizeHtml, setNotesCache, renderMermaidDiagrams } from './markdown'
   import { notesStore } from './store.svelte'
+  import MermaidViewer from './MermaidViewer.svelte'
   
   interface Props {
     content: string
@@ -9,6 +10,8 @@
   
   let { content }: Props = $props()
   let previewContainer: HTMLDivElement | undefined = $state()
+  let viewerSvg: string = $state('')
+  let showViewer: boolean = $state(false)
   
   // Update notes cache for cross-linking
   $effect(() => {
@@ -27,16 +30,32 @@
       // Use setTimeout to ensure DOM is updated
       setTimeout(() => {
         if (previewContainer) {
-          renderMermaidDiagrams(previewContainer)
+          renderMermaidDiagrams(previewContainer, openViewer)
         }
       }, 50)
     }
   })
+  
+  // Open diagram in viewer
+  function openViewer(svg: string) {
+    viewerSvg = svg
+    showViewer = true
+  }
+  
+  // Close viewer
+  function closeViewer() {
+    showViewer = false
+    viewerSvg = ''
+  }
 </script>
 
 <div class="markdown-preview" bind:this={previewContainer}>
   {@html html()}
 </div>
+
+{#if showViewer}
+  <MermaidViewer svg={viewerSvg} onClose={closeViewer} />
+{/if}
 
 <style>
   .markdown-preview {
@@ -291,14 +310,61 @@
     border-radius: 6px;
     border: 1px solid var(--border-color);
     overflow-x: auto;
+    position: relative;
+  }
+  
+  .markdown-preview :global(.mermaid-wrapper) {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
+  }
+  
+  .markdown-preview :global(.mermaid-svg-container) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
   }
 
   .markdown-preview :global(.mermaid-diagram svg) {
     max-width: 100%;
     height: auto;
+  }
+  
+  .markdown-preview :global(.mermaid-zoom-btn) {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .markdown-preview :global(.mermaid-zoom-btn:hover) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: var(--primary-hover);
+  }
+  
+  .markdown-preview :global(.mermaid-zoom-btn:active) {
+    transform: translateY(0);
+  }
+  
+  .markdown-preview :global(.mermaid-zoom-btn svg) {
+    width: 18px;
+    height: 18px;
   }
 
   .markdown-preview :global(.mermaid-error) {
@@ -333,6 +399,18 @@
 
     .markdown-preview :global(.mermaid-diagram) {
       padding: 0.5rem;
+    }
+    
+    .markdown-preview :global(.mermaid-zoom-btn) {
+      padding: 0.4rem 0.6rem;
+      font-size: 0.75rem;
+      top: 0.25rem;
+      right: 0.25rem;
+    }
+    
+    .markdown-preview :global(.mermaid-zoom-btn svg) {
+      width: 16px;
+      height: 16px;
     }
 
     .markdown-preview :global(.katex-display) {
