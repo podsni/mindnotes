@@ -79,6 +79,19 @@
     return date.toLocaleDateString()
   }
 
+  // Infinite scroll handler
+  const handleScroll = (e: Event) => {
+    const target = e.target as HTMLElement
+    const scrollTop = target.scrollTop
+    const scrollHeight = target.scrollHeight
+    const clientHeight = target.clientHeight
+    
+    // Load more when scrolled to 80% of the list
+    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+      notesStore.loadMoreNotes()
+    }
+  }
+
   // Swipe gesture handlers - only for safe areas
   const handleTouchStart = (e: TouchEvent) => {
     const target = e.target as HTMLElement
@@ -170,27 +183,35 @@
     />
   </div>
 
-  <div class="notes-list" bind:this={listContainer}>
-    {#if notesStore.isLoading}
-      <div class="loading">Loading...</div>
+  <div class="notes-list" bind:this={listContainer} onscroll={handleScroll}>
+    {#if notesStore.isLoading && notesStore.notes.length === 0}
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading notes...</p>
+      </div>
     {:else if notesStore.notes.length === 0}
       <div class="empty">
         <p>No notes yet</p>
         <p class="hint">Create your first note!</p>
       </div>
     {:else if notesStore.notes.length > 50}
-      <!-- Use virtual list for large datasets (>50 notes) -->
+      <!-- Use virtual list for large datasets (>50 notes) - OPTIMIZED -->
       <VirtualList items={notesStore.notes} let:item height="calc(100vh - 250px)">
         {#if item.id}
           <a href="#/note/{item.id}" class="note-item" class:pinned={item.pinned} onclick={handleNoteClick}>
             <div class="note-content">
-              <div class="note-title">
-                {#if item.pinned}
-                  <span class="pin-icon">📌</span>
-                {/if}
-                {item.title || 'Untitled'}
+              <div class="note-header">
+                <div class="note-title">
+                  {#if item.pinned}
+                    <span class="pin-icon">📌</span>
+                  {/if}
+                  {item.title || 'Untitled'}
+                </div>
+                <span class="word-count" title="{item.wordCount} words, {item.charCount} characters">
+                  {item.wordCount}w · {item.charCount}c
+                </span>
               </div>
-              <div class="note-preview">{item.content.slice(0, 60)}{item.content.length > 60 ? '...' : ''}</div>
+              <div class="note-preview">{item.preview}</div>
               <div class="note-date">{formatDate(item.updatedAt)}</div>
             </div>
             <div class="note-actions">
@@ -215,18 +236,23 @@
         {/if}
       </VirtualList>
     {:else}
-      <!-- Regular list for small datasets (≤50 notes) -->
+      <!-- Regular list for small datasets (≤50 notes) - OPTIMIZED -->
       {#each notesStore.notes as note (note.id)}
         {#if note.id}
           <a href="#/note/{note.id}" class="note-item" class:pinned={note.pinned} onclick={handleNoteClick}>
             <div class="note-content">
-              <div class="note-title">
-                {#if note.pinned}
-                  <span class="pin-icon">📌</span>
-                {/if}
-                {note.title || 'Untitled'}
+              <div class="note-header">
+                <div class="note-title">
+                  {#if note.pinned}
+                    <span class="pin-icon">📌</span>
+                  {/if}
+                  {note.title || 'Untitled'}
+                </div>
+                <span class="word-count" title="{note.wordCount} words, {note.charCount} characters">
+                  {note.wordCount}w · {note.charCount}c
+                </span>
               </div>
-              <div class="note-preview">{note.content.slice(0, 60)}{note.content.length > 60 ? '...' : ''}</div>
+              <div class="note-preview">{note.preview}</div>
               <div class="note-date">{formatDate(note.updatedAt)}</div>
             </div>
             <div class="note-actions">
@@ -412,6 +438,26 @@
     color: var(--text-secondary);
   }
 
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   .empty .hint {
     font-size: 0.85rem;
     margin-top: 0.5rem;
@@ -454,10 +500,17 @@
     min-width: 0; /* Allow text truncation */
   }
 
+  .note-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
   .note-title {
     font-weight: 600;
     font-size: 0.95rem;
-    margin-bottom: 0.25rem;
     color: var(--text-color);
     white-space: nowrap;
     overflow: hidden;
@@ -465,10 +518,20 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
   }
 
   .pin-icon {
     font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .word-count {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    white-space: nowrap;
     flex-shrink: 0;
   }
 

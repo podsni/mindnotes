@@ -3,7 +3,7 @@
   import { notesStore, uiStore } from './store.svelte'
   import { router } from './router'
   import MarkdownPreview from './MarkdownPreview.svelte'
-  import { getBacklinks } from './markdown'
+  import { noteService, type NoteMetadata } from './db'
 
   interface Props {
     id: string
@@ -14,14 +14,22 @@
   let titleInput: HTMLInputElement | undefined = $state()
   let contentTextarea: HTMLTextAreaElement | undefined = $state()
   let previewMode = $state(false)
+  let backlinks = $state<NoteMetadata[]>([])
   
   // Load note when component mounts or ID changes
   $effect(() => {
     const noteId = parseInt(id)
     if (!isNaN(noteId)) {
       notesStore.loadNote(noteId)
+      // Load backlinks
+      loadBacklinks(noteId)
     }
   })
+
+  // Load backlinks from database
+  const loadBacklinks = async (noteId: number) => {
+    backlinks = await noteService.getBacklinks(noteId)
+  }
 
   const handleTitleChange = (e: Event) => {
     const target = e.target as HTMLInputElement
@@ -66,13 +74,6 @@
   const togglePreview = () => {
     previewMode = !previewMode
   }
-
-  // Get backlinks for current note
-  const backlinks = $derived(() => {
-    const noteId = parseInt(id)
-    if (isNaN(noteId)) return []
-    return getBacklinks(noteId, notesStore.notes)
-  })
 
   // Auto-resize textarea for mobile
   const autoResizeTextarea = (textarea: HTMLTextAreaElement) => {
@@ -147,12 +148,14 @@
 
     <div class="editor-footer">
       <div class="footer-left">
-        <span class="word-count">
-          {notesStore.currentNote.content.split(/\s+/).filter(w => w.length > 0).length} words
+        <span class="word-count" title="Detailed statistics">
+          📊 {notesStore.currentNote.content.split(/\s+/).filter(w => w.length > 0).length} words · 
+          {notesStore.currentNote.content.length} characters · 
+          {notesStore.currentNote.content.replace(/\s/g, '').length} chars (no spaces)
         </span>
-        {#if backlinks().length > 0}
+        {#if backlinks.length > 0}
           <span class="backlinks-count" title="Notes linking to this note">
-            🔗 {backlinks().length} backlink{backlinks().length > 1 ? 's' : ''}
+            🔗 {backlinks.length} backlink{backlinks.length > 1 ? 's' : ''}
           </span>
         {/if}
       </div>
@@ -162,14 +165,14 @@
     </div>
 
     <!-- Backlinks section -->
-    {#if backlinks().length > 0}
+    {#if backlinks.length > 0}
       <div class="backlinks-section">
         <h3>Linked from:</h3>
         <div class="backlinks-list">
-          {#each backlinks() as backlink}
+          {#each backlinks as backlink}
             <a href="#/note/{backlink.id}" class="backlink-item">
               <span class="backlink-title">{backlink.title}</span>
-              <span class="backlink-preview">{backlink.content.slice(0, 80)}...</span>
+              <span class="backlink-preview">{backlink.preview}</span>
             </a>
           {/each}
         </div>
