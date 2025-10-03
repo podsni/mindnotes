@@ -315,7 +315,7 @@
 • Links: [[note-title]] or [text](url)
 • Images: drag & drop or ![alt](url)
 • Code: ```language or inline `code`
-• Math: $inline$ or $$block$$
+• Math: $inline$, $$block$$, block mode, LaTeX environments
 • Mermaid: ```mermaid
 • Lists: - bullet or 1. numbered
 • Tables: | col1 | col2 |
@@ -344,7 +344,7 @@
 • Links: [[note-title]] or [text](url)
 • Images: drag & drop or ![alt](url)
 • Code: ```language or inline `code`
-• Math: $inline$ or $$block$$
+• Math: $inline$, $$block$$, block mode, LaTeX environments
 • Mermaid: ```mermaid
 • Lists: - bullet or 1. numbered
 • Tables: | col1 | col2 |

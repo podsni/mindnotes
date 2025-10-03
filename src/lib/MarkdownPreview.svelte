@@ -307,12 +307,31 @@
     padding: 0.5rem;
   }
 
+  /* LaTeX multi-line blocks */
+  .markdown-preview :global(.latex-block) {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .markdown-preview :global(.latex-block .katex-display) {
+    margin: 0;
+    padding: 0;
+  }
+
   .markdown-preview :global(.math-error) {
     color: #ff4444;
     font-style: italic;
     background: rgba(255, 68, 68, 0.1);
-    padding: 0.2rem 0.4rem;
-    border-radius: 3px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    border-left: 3px solid #ff4444;
+    margin: 1rem 0;
+    display: block;
   }
 
   /* Mermaid diagrams */

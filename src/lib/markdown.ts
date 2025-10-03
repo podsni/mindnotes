@@ -62,6 +62,82 @@ renderer.code = (code) => {
   return `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
 }
 
+// Process LaTeX math expressions
+function processMath(text: string): string {
+  // Handle LaTeX environments (multi-line) like \begin{align}...\end{align}
+  // Support: equation, align, gather, alignat, multline, array, matrix, etc.
+  const latexEnvs = [
+    'equation', 'equation\\*',
+    'align', 'align\\*',
+    'gather', 'gather\\*',
+    'alignat', 'alignat\\*',
+    'multline', 'multline\\*',
+    'split',
+    'array',
+    'matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix',
+    'cases', 'aligned', 'gathered'
+  ]
+  
+  // Create regex pattern for all environments
+  const envPattern = latexEnvs.join('|')
+  const latexEnvRegex = new RegExp(
+    `\\\\begin\\{(${envPattern})\\}([\\s\\S]*?)\\\\end\\{\\1\\}`,
+    'g'
+  )
+  
+  let replaced = text.replace(latexEnvRegex, (_match: string, env: string, content: string) => {
+    try {
+      // Reconstruct full LaTeX with environment
+      const fullLatex = `\\begin{${env}}${content}\\end{${env}}`
+      return katex.renderToString(fullLatex, {
+        displayMode: true,
+        throwOnError: false,
+        trust: true // Allow \begin, \end commands
+      })
+    } catch (err) {
+      return `<div class="math-error">LaTeX Error in \\begin{${env}}: ${err}</div>`
+    }
+  })
+  
+  // Handle block math mode \[...\]
+  replaced = replaced.replace(/\\\[([\s\S]*?)\\\]/g, (_match: string, math: string) => {
+    try {
+      return katex.renderToString(math.trim(), {
+        displayMode: true,
+        throwOnError: false
+      })
+    } catch (err) {
+      return `<span class="math-error">Math Error: ${math}</span>`
+    }
+  })
+  
+  // Handle block math $$...$$
+  replaced = replaced.replace(/\$\$([^\$]+)\$\$/g, (_match: string, math: string) => {
+    try {
+      return katex.renderToString(math.trim(), {
+        displayMode: true,
+        throwOnError: false
+      })
+    } catch (err) {
+      return `<span class="math-error">Math Error: ${math}</span>`
+    }
+  })
+  
+  // Handle inline math $...$
+  replaced = replaced.replace(/\$([^\$]+)\$/g, (_match: string, math: string) => {
+    try {
+      return katex.renderToString(math.trim(), {
+        displayMode: false,
+        throwOnError: false
+      })
+    } catch (err) {
+      return `<span class="math-error">Math Error: ${math}</span>`
+    }
+  })
+  
+  return replaced
+}
+
 // Override link rendering to support [[...]] syntax
 const originalTextRenderer = renderer.text.bind(renderer)
 renderer.text = (text) => {
@@ -88,38 +164,69 @@ renderer.text = (text) => {
     return `<span class="note-link-missing" title="Note not found: ${content}">[[${content}]]</span>`
   })
   
-  // Handle inline math $...$ and block math $$...$$
-  // Block math first ($$...$$)
-  replaced = replaced.replace(/\$\$([^\$]+)\$\$/g, (_match: string, math: string) => {
+  // Process math expressions (inline and block)
+  replaced = processMath(replaced)
+  
+  return replaced
+}
+
+// Preprocess markdown to handle LaTeX environments at document level
+function preprocessLatex(markdown: string): string {
+  // First, handle block math mode \[...\]
+  let processed = markdown.replace(/\\\[([\s\S]*?)\\\]/g, (_match: string, math: string) => {
     try {
-      return katex.renderToString(math.trim(), {
+      const rendered = katex.renderToString(math.trim(), {
         displayMode: true,
         throwOnError: false
       })
+      return `\n\n<div class="latex-block">${rendered}</div>\n\n`
     } catch (err) {
-      return `<span class="math-error">Math Error: ${math}</span>`
+      return `\n\n<div class="math-error">LaTeX Error in block math: ${err}</div>\n\n`
     }
   })
   
-  // Inline math ($...$)
-  replaced = replaced.replace(/\$([^\$]+)\$/g, (_match: string, math: string) => {
+  // LaTeX environments that should be rendered as display math blocks
+  const latexEnvs = [
+    'equation', 'equation\\*',
+    'align', 'align\\*',
+    'gather', 'gather\\*',
+    'alignat', 'alignat\\*',
+    'multline', 'multline\\*',
+    'split',
+    'array',
+    'matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix',
+    'cases', 'aligned', 'gathered'
+  ]
+  
+  const envPattern = latexEnvs.join('|')
+  const latexEnvRegex = new RegExp(
+    `\\\\begin\\{(${envPattern})\\}([\\s\\S]*?)\\\\end\\{\\1\\}`,
+    'g'
+  )
+  
+  // Replace LaTeX environments with rendered HTML
+  return processed.replace(latexEnvRegex, (_match: string, env: string, content: string) => {
     try {
-      return katex.renderToString(math.trim(), {
-        displayMode: false,
-        throwOnError: false
+      const fullLatex = `\\begin{${env}}${content}\\end{${env}}`
+      const rendered = katex.renderToString(fullLatex, {
+        displayMode: true,
+        throwOnError: false,
+        trust: true
       })
+      // Wrap in a special marker to prevent markdown processing
+      return `\n\n<div class="latex-block">${rendered}</div>\n\n`
     } catch (err) {
-      return `<span class="math-error">Math Error: ${math}</span>`
+      return `\n\n<div class="math-error">LaTeX Error in \\begin{${env}}: ${err}</div>\n\n`
     }
   })
-  
-  return replaced
 }
 
 // Parse markdown to HTML
 export function parseMarkdown(markdown: string): string {
   try {
-    return marked(markdown, { renderer }) as string
+    // Preprocess LaTeX environments first
+    const preprocessed = preprocessLatex(markdown)
+    return marked(preprocessed, { renderer }) as string
   } catch (error) {
     console.error('Markdown parse error:', error)
     return markdown
