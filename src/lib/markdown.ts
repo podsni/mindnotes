@@ -112,7 +112,7 @@ function processMath(text: string): string {
   })
   
   // Handle block math $$...$$
-  replaced = replaced.replace(/\$\$([^\$]+)\$\$/g, (_match: string, math: string) => {
+  replaced = replaced.replace(/\$\$([\s\S]*?)\$\$/g, (_match: string, math: string) => {
     try {
       return katex.renderToString(math.trim(), {
         displayMode: true,
@@ -174,6 +174,19 @@ renderer.text = (text) => {
 function preprocessLatex(markdown: string): string {
   // First, handle block math mode \[...\]
   let processed = markdown.replace(/\\\[([\s\S]*?)\\\]/g, (_match: string, math: string) => {
+    try {
+      const rendered = katex.renderToString(math.trim(), {
+        displayMode: true,
+        throwOnError: false
+      })
+      return `\n\n<div class="latex-block">${rendered}</div>\n\n`
+    } catch (err) {
+      return `\n\n<div class="math-error">LaTeX Error in block math: ${err}</div>\n\n`
+    }
+  })
+  
+  // Handle block math $$...$$ at document level
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (_match: string, math: string) => {
     try {
       const rendered = katex.renderToString(math.trim(), {
         displayMode: true,
