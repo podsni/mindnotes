@@ -14,14 +14,28 @@
   let viewerSvg: string = $state('')
   let showViewer: boolean = $state(false)
   
+  // ⚡ Performance: Debounced content to reduce parsing frequency
+  let debouncedContent = $state(content)
+  let debounceTimer: number | undefined
+  
   // Update notes cache for cross-linking
   $effect(() => {
     setNotesCache(notesStore.notes)
   })
   
-  // Parse markdown to HTML
+  // ⚡ Performance: Debounce content updates (150ms after typing stops)
+  $effect(() => {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      debouncedContent = content
+    }, 150) // Wait 150ms after user stops typing
+    
+    return () => clearTimeout(debounceTimer)
+  })
+  
+  // Parse markdown to HTML with debounced content
   const html = $derived(() => {
-    const parsed = parseMarkdown(content)
+    const parsed = parseMarkdown(debouncedContent)
     return sanitizeHtml(parsed)
   })
   

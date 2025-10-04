@@ -4,14 +4,48 @@ import type { Note } from './db'
 import hljs from 'highlight.js'
 import DOMPurify from 'dompurify'
 import katex from 'katex'
-import mermaid from 'mermaid'
 
-// Initialize Mermaid
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'loose',
-})
+// ⚡ Performance Optimization: Lazy load Mermaid
+let mermaidModule: typeof import('mermaid') | null = null
+let mermaidInitialized = false
+
+async function loadMermaid() {
+  if (!mermaidModule) {
+    mermaidModule = await import('mermaid')
+  }
+  if (!mermaidInitialized) {
+    mermaidModule.default.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+    })
+    mermaidInitialized = true
+  }
+  return mermaidModule.default
+}
+
+// ⚡ Performance Optimization: Markdown parsing cache
+const markdownCache = new Map<string, string>()
+const MAX_CACHE_SIZE = 100 // Limit cache size to prevent memory issues
+
+function getCachedOrParse(content: string, parser: () => string): string {
+  if (markdownCache.has(content)) {
+    return markdownCache.get(content)!
+  }
+  
+  const result = parser()
+  
+  // LRU-like cache eviction
+  if (markdownCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = markdownCache.keys().next().value
+    if (firstKey !== undefined) {
+      markdownCache.delete(firstKey)
+    }
+  }
+  
+  markdownCache.set(content, result)
+  return result
+}
 
 // Configure marked options
 marked.setOptions({
@@ -234,24 +268,32 @@ function preprocessLatex(markdown: string): string {
   })
 }
 
-// Parse markdown to HTML
+// Parse markdown to HTML with caching
 export function parseMarkdown(markdown: string): string {
-  try {
-    // Preprocess LaTeX environments first
-    const preprocessed = preprocessLatex(markdown)
-    return marked(preprocessed, { renderer }) as string
-  } catch (error) {
-    console.error('Markdown parse error:', error)
-    return markdown
-  }
+  return getCachedOrParse(markdown, () => {
+    try {
+      // Preprocess LaTeX environments first
+      const preprocessed = preprocessLatex(markdown)
+      return marked(preprocessed, { renderer }) as string
+    } catch (error) {
+      console.error('Markdown parse error:', error)
+      return markdown
+    }
+  })
 }
 
-// Render Mermaid diagrams after DOM insertion
+// ⚡ Performance: Render Mermaid diagrams with lazy loading
 export async function renderMermaidDiagrams(
   container: HTMLElement, 
   onZoomClick?: (svg: string) => void
 ) {
   const diagrams = container.querySelectorAll('.mermaid-diagram')
+  
+  // If no diagrams, don't load Mermaid at all!
+  if (diagrams.length === 0) return
+  
+  // Lazy load Mermaid only when needed
+  const mermaid = await loadMermaid()
   
   for (const diagram of diagrams) {
     const id = diagram.getAttribute('data-mermaid-id')
