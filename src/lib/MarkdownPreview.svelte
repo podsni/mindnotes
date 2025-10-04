@@ -14,28 +14,14 @@
   let viewerSvg: string = $state('')
   let showViewer: boolean = $state(false)
   
-  // ⚡ Performance: Debounced content to reduce parsing frequency
-  let debouncedContent = $state(content)
-  let debounceTimer: number | undefined
-  
   // Update notes cache for cross-linking
   $effect(() => {
     setNotesCache(notesStore.notes)
   })
   
-  // ⚡ Performance: Debounce content updates (150ms after typing stops)
-  $effect(() => {
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => {
-      debouncedContent = content
-    }, 150) // Wait 150ms after user stops typing
-    
-    return () => clearTimeout(debounceTimer)
-  })
-  
-  // Parse markdown to HTML with debounced content
+  // Parse markdown to HTML INSTANTLY (no debounce for real-time preview)
   const html = $derived(() => {
-    const parsed = parseMarkdown(debouncedContent)
+    const parsed = parseMarkdown(content)
     return sanitizeHtml(parsed)
   })
   
@@ -263,8 +249,31 @@
   }
 
   /* Task lists */
-  .markdown-preview :global(input[type="checkbox"]) {
-    margin-right: 0.5rem;
+  .markdown-preview :global(.task-list-item) {
+    list-style: none;
+    margin-left: -2rem;
+    padding-left: 2rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .markdown-preview :global(.task-checkbox) {
+    margin-top: 0.3rem;
+    flex-shrink: 0;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+  }
+
+  .markdown-preview :global(.task-content) {
+    flex: 1;
+  }
+
+  .markdown-preview :global(.task-list-item input[type="checkbox"]:checked + .task-content) {
+    text-decoration: line-through;
+    opacity: 0.6;
   }
 
   /* Syntax highlighting (highlight.js) */

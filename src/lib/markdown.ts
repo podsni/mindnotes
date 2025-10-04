@@ -56,6 +56,34 @@ marked.setOptions({
 // Custom renderer for cross-note links [[note-id]]
 const renderer = new marked.Renderer()
 
+// Override list item rendering to support task lists
+renderer.listitem = (text) => {
+  const textStr = typeof text === 'string' ? text : text.text
+  
+  // Check for task list syntax: - [ ] or - [x]
+  const uncheckedMatch = textStr.match(/^\s*\[ \]\s+(.*)/)
+  const checkedMatch = textStr.match(/^\s*\[x\]\s+(.*)/)
+  
+  if (uncheckedMatch) {
+    const content = uncheckedMatch[1]
+    return `<li class="task-list-item">
+      <input type="checkbox" class="task-checkbox" disabled />
+      <span class="task-content">${content}</span>
+    </li>`
+  }
+  
+  if (checkedMatch) {
+    const content = checkedMatch[1]
+    return `<li class="task-list-item">
+      <input type="checkbox" class="task-checkbox" checked disabled />
+      <span class="task-content">${content}</span>
+    </li>`
+  }
+  
+  // Regular list item
+  return `<li>${textStr}</li>`
+}
+
 // Minimal interface for cross-linking (only need id and title)
 interface NoteLinkData {
   id?: number

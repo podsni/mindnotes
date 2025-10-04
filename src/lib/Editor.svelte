@@ -4,6 +4,10 @@
   import { router } from './router'
   import MarkdownPreview from './MarkdownPreview.svelte'
   import { noteService, type NoteMetadata } from './db'
+  import EditorToolbar from './EditorToolbar.svelte'
+  import OutlineView from './OutlineView.svelte'
+  import * as imageHandler from './ImageHandler.svelte'
+  import * as commands from './editorCommands'
 
   interface Props {
     id: string
@@ -17,6 +21,11 @@
   let splitView = $state(false)
   let backlinks = $state<NoteMetadata[]>([])
   let isDragging = $state(false)
+  let showOutline = $state(false)
+  let showToolbar = $state(true)
+  
+  // Local content for instant preview update (no debounce delay)
+  let localContent = $state('')
   
   // Scroll sync for split view
   let previewPane: HTMLDivElement | undefined = $state()
@@ -30,6 +39,13 @@
       notesStore.loadNote(noteId)
       // Load backlinks
       loadBacklinks(noteId)
+    }
+  })
+  
+  // Sync localContent with store content
+  $effect(() => {
+    if (notesStore.currentNote) {
+      localContent = notesStore.currentNote.content
     }
   })
 
@@ -49,11 +65,29 @@
   const handleContentChange = (e: Event) => {
     const target = e.target as HTMLTextAreaElement
     const noteId = parseInt(id)
+    
+    // Update local content instantly for real-time preview
+    localContent = target.value
+    
+    // Update store (will debounce save to DB)
     if (!isNaN(noteId)) {
       notesStore.updateNote(noteId, { content: target.value })
     }
     // Auto-resize textarea on mobile
     autoResizeTextarea(target)
+  }
+
+  // Update content from commands
+  const updateContent = (newContent: string) => {
+    const noteId = parseInt(id)
+    
+    // Update local content instantly for real-time preview
+    localContent = newContent
+    
+    // Update store (will debounce save to DB)
+    if (!isNaN(noteId)) {
+      notesStore.updateNote(noteId, { content: newContent })
+    }
   }
 
   const handleDelete = async () => {
@@ -92,6 +126,110 @@
     }
   }
 
+  const toggleOutline = () => {
+    showOutline = !showOutline
+  }
+
+  // Toolbar action handlers
+  const handleBold = () => {
+    if (!contentTextarea) return
+    const newContent = commands.toggleWrap(contentTextarea, '**')
+    updateContent(newContent)
+  }
+
+  const handleItalic = () => {
+    if (!contentTextarea) return
+    const newContent = commands.toggleWrap(contentTextarea, '*')
+    updateContent(newContent)
+  }
+
+  const handleStrikethrough = () => {
+    if (!contentTextarea) return
+    const newContent = commands.toggleWrap(contentTextarea, '~~')
+    updateContent(newContent)
+  }
+
+  const handleCode = () => {
+    if (!contentTextarea) return
+    const newContent = commands.toggleWrap(contentTextarea, '`')
+    updateContent(newContent)
+  }
+
+  const handleLink = () => {
+    if (!contentTextarea) return
+    const url = prompt('Enter URL:')
+    if (url) {
+      const newContent = commands.insertLink(contentTextarea, url)
+      updateContent(newContent)
+    }
+  }
+
+  const handleImage = () => {
+    if (!contentTextarea) return
+    const url = prompt('Enter image URL (or paste image directly):')
+    if (url) {
+      // Check if it's a URL or try to fetch it
+      imageHandler.urlToBase64(url).then(base64 => {
+        const newContent = commands.insertImage(contentTextarea!, base64)
+        updateContent(newContent)
+      })
+    }
+  }
+
+  const handleHeading = (level: number) => {
+    if (!contentTextarea) return
+    const newContent = commands.insertHeading(contentTextarea, level)
+    updateContent(newContent)
+  }
+
+  const handleList = (ordered: boolean) => {
+    if (!contentTextarea) return
+    const newContent = commands.insertListItem(contentTextarea, ordered)
+    updateContent(newContent)
+  }
+
+  const handleCheckbox = () => {
+    if (!contentTextarea) return
+    const newContent = commands.insertTaskItem(contentTextarea)
+    updateContent(newContent)
+  }
+
+  const handleTable = () => {
+    if (!contentTextarea) return
+    const newContent = commands.insertTable(contentTextarea, 3, 3)
+    updateContent(newContent)
+  }
+
+  // Scroll to header from outline
+  const handleHeaderClick = (headerId: string) => {
+    if (!contentTextarea) return
+    
+    // Find the header in content
+    const lines = contentTextarea.value.split('\n')
+    let lineNumber = 0
+    
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(/^(#{1,6})\s+(.+)$/)
+      if (match) {
+        const text = match[2].trim()
+        const id = text
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+        
+        if (id === headerId) {
+          lineNumber = i
+          break
+        }
+      }
+    }
+    
+    // Scroll to line
+    const lineHeight = 24 // Approximate line height
+    contentTextarea.scrollTop = lineNumber * lineHeight
+    contentTextarea.focus()
+  }
+
   // Scroll synchronization between editor and preview (real-time)
   const handleEditorScroll = (e: Event) => {
     if (!splitView || !contentTextarea || !previewPane || isScrollingSynced) return
@@ -104,13 +242,16 @@
     
     const scrollPercentage = target.scrollTop / maxScroll
     
-    // Direct sync without RAF for instant response
+    // Use requestAnimationFrame for smooth sync
     isScrollingSynced = true
-    const previewMaxScroll = previewPane.scrollHeight - previewPane.clientHeight
-    previewPane.scrollTop = scrollPercentage * previewMaxScroll
-    
-    // Reset flag immediately on next tick
-    setTimeout(() => { isScrollingSynced = false }, 0)
+    requestAnimationFrame(() => {
+      if (previewPane) {
+        const previewMaxScroll = previewPane.scrollHeight - previewPane.clientHeight
+        previewPane.scrollTop = scrollPercentage * previewMaxScroll
+      }
+      // Reset flag after a short delay
+      setTimeout(() => { isScrollingSynced = false }, 10)
+    })
   }
 
   const handlePreviewScroll = (e: Event) => {
@@ -124,13 +265,16 @@
     
     const scrollPercentage = target.scrollTop / maxScroll
     
-    // Direct sync without RAF for instant response
+    // Use requestAnimationFrame for smooth sync
     isScrollingSynced = true
-    const textareaMaxScroll = contentTextarea.scrollHeight - contentTextarea.clientHeight
-    contentTextarea.scrollTop = scrollPercentage * textareaMaxScroll
-    
-    // Reset flag immediately on next tick
-    setTimeout(() => { isScrollingSynced = false }, 0)
+    requestAnimationFrame(() => {
+      if (contentTextarea) {
+        const textareaMaxScroll = contentTextarea.scrollHeight - contentTextarea.clientHeight
+        contentTextarea.scrollTop = scrollPercentage * textareaMaxScroll
+      }
+      // Reset flag after a short delay
+      setTimeout(() => { isScrollingSynced = false }, 10)
+    })
   }
 
   // Cleanup on destroy
@@ -156,47 +300,84 @@
     const files = e.dataTransfer?.files
     if (!files || files.length === 0) return
 
-    const noteId = parseInt(id)
-    if (isNaN(noteId)) return
+    if (!contentTextarea) return
 
-    let insertText = ''
+    // Use new image handler
+    const imageMarkdowns = await imageHandler.handleImageDrop(files)
+    
+    for (const imageMarkdown of imageMarkdowns) {
+      const newContent = imageHandler.insertImageAtCursor(contentTextarea, imageMarkdown)
+      updateContent(newContent)
+    }
+  }
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      
-      // Handle image files
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onload = (evt) => {
-          const base64 = evt.target?.result as string
-          const imageMarkdown = `\n![${file.name}](${base64})\n`
-          
-          // Insert at cursor position or append
-          if (contentTextarea) {
-            const cursorPos = contentTextarea.selectionStart || 0
-            const currentContent = notesStore.currentNote?.content || ''
-            const newContent = currentContent.slice(0, cursorPos) + imageMarkdown + currentContent.slice(cursorPos)
-            notesStore.updateNote(noteId, { content: newContent })
-          }
-        }
-        reader.readAsDataURL(file)
-      } 
-      // Handle other files (create link)
-      else {
-        const reader = new FileReader()
-        reader.onload = (evt) => {
-          const base64 = evt.target?.result as string
-          const fileMarkdown = `\n[📎 ${file.name}](${base64})\n`
-          
-          if (contentTextarea) {
-            const cursorPos = contentTextarea.selectionStart || 0
-            const currentContent = notesStore.currentNote?.content || ''
-            const newContent = currentContent.slice(0, cursorPos) + fileMarkdown + currentContent.slice(cursorPos)
-            notesStore.updateNote(noteId, { content: newContent })
-          }
-        }
-        reader.readAsDataURL(file)
+  // Handle paste event for images and URLs
+  const handlePaste = async (e: ClipboardEvent) => {
+    if (!contentTextarea) return
+
+    const imageMarkdown = await imageHandler.handleImagePaste(e)
+    if (imageMarkdown) {
+      e.preventDefault()
+      const newContent = imageHandler.insertImageAtCursor(contentTextarea, imageMarkdown)
+      updateContent(newContent)
+    }
+  }
+
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!contentTextarea) return
+
+    const ctrl = e.ctrlKey || e.metaKey
+    
+    // Tab for list indentation
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const newContent = commands.handleTab(contentTextarea, e.shiftKey)
+      updateContent(newContent)
+      return
+    }
+
+    // Ctrl+B for bold
+    if (ctrl && e.key === 'b') {
+      e.preventDefault()
+      const newContent = commands.toggleWrap(contentTextarea, '**')
+      updateContent(newContent)
+      return
+    }
+
+    // Ctrl+I for italic
+    if (ctrl && e.key === 'i') {
+      e.preventDefault()
+      const newContent = commands.toggleWrap(contentTextarea, '*')
+      updateContent(newContent)
+      return
+    }
+
+    // Ctrl+Shift+X for strikethrough
+    if (ctrl && e.shiftKey && e.key === 'X') {
+      e.preventDefault()
+      const newContent = commands.toggleWrap(contentTextarea, '~~')
+      updateContent(newContent)
+      return
+    }
+
+    // Ctrl+` for inline code
+    if (ctrl && e.key === '`') {
+      e.preventDefault()
+      const newContent = commands.toggleWrap(contentTextarea, '`')
+      updateContent(newContent)
+      return
+    }
+
+    // Ctrl+K for link
+    if (ctrl && e.key === 'k') {
+      e.preventDefault()
+      const url = prompt('Enter URL:')
+      if (url) {
+        const newContent = commands.insertLink(contentTextarea, url)
+        updateContent(newContent)
       }
+      return
     }
   }
 
@@ -236,6 +417,14 @@
       />
       <div class="header-actions">
         <button 
+          onclick={toggleOutline} 
+          class="btn-outline" 
+          class:active={showOutline}
+          title={showOutline ? 'Hide outline' : 'Show outline (TOC)'}
+        >
+          📋
+        </button>
+        <button 
           onclick={toggleSplitView} 
           class="btn-split" 
           class:active={splitView}
@@ -265,12 +454,27 @@
       </div>
     </div>
 
-    <!-- Tab Navigation -->
+    <!-- Editor Toolbar -->
+    {#if showToolbar && !previewMode}
+      <EditorToolbar
+        onBold={handleBold}
+        onItalic={handleItalic}
+        onStrikethrough={handleStrikethrough}
+        onCode={handleCode}
+        onLink={handleLink}
+        onImage={handleImage}
+        onHeading={handleHeading}
+        onList={handleList}
+        onCheckbox={handleCheckbox}
+        onTable={handleTable}
+      />
+    {/if}
 
     
     <div 
       class="editor-content" 
       class:split-view={splitView}
+      class:with-outline={showOutline}
       class:dragging={isDragging}
       ondragover={handleDragOver}
       ondragleave={handleDragLeave}
@@ -279,29 +483,38 @@
       aria-label="Note editor with drag and drop support"
     >
       {#if previewMode}
-        <MarkdownPreview content={notesStore.currentNote.content} mode="full" />
+        <MarkdownPreview content={localContent} mode="full" />
         {:else if splitView}
-          <!-- Split view: editor on left, preview on right -->
+          <!-- Split view: editor on left, preview on right, outline on far right -->
           <div class="split-container">
             <div class="split-pane editor-pane">
               <textarea
                 bind:this={contentTextarea}
+                bind:value={localContent}
                 class="content-textarea editor-text split-textarea"
-                value={notesStore.currentNote.content}
                 oninput={handleContentChange}
+                onpaste={handlePaste}
+                onkeydown={handleKeyDown}
                 onscroll={handleEditorScroll}
-                placeholder="Start writing your note... Use [[note-title]] for cross-note links
+                placeholder="Start writing your note... 
 
-📝 Markdown features:
+✨ Shortcuts:
+• Ctrl+B: Bold
+• Ctrl+I: Italic
+• Ctrl+Shift+X: Strikethrough
+• Ctrl+`: Code
+• Ctrl+K: Link
+• Tab/Shift+Tab: Indent/Unindent lists
+
+📝 Features:
+• Drag & drop images
+• Paste images from clipboard
+• Type image URL and it will auto-convert
 • Headers: # H1, ## H2, ### H3
 • Links: [[note-title]] or [text](url)
-• Images: drag & drop or ![alt](url)
-• Code: ```language or inline `code`
-• Math: $inline$, $$block$$, block mode, LaTeX environments
+• Math: $inline$, $$block$$
 • Mermaid: ```mermaid
-• Lists: - bullet or 1. numbered
-• Tables: | col1 | col2 |
-• Checkboxes: - [ ] task"
+• Lists: - bullet, 1. numbered, - [ ] task"
               ></textarea>
             </div>
             <div class="split-divider"></div>
@@ -310,28 +523,56 @@
               bind:this={previewPane}
               onscroll={handlePreviewScroll}
             >
-              <MarkdownPreview content={notesStore.currentNote.content} mode="split" />
+              <MarkdownPreview content={localContent} mode="split" />
             </div>
+            {#if showOutline}
+              <div class="split-divider"></div>
+              <div class="split-pane outline-pane">
+                <OutlineView 
+                  content={localContent}
+                  onHeaderClick={handleHeaderClick}
+                />
+              </div>
+            {/if}
           </div>
         {:else}
-          <textarea
-            bind:this={contentTextarea}
-            class="content-textarea editor-text"
-            value={notesStore.currentNote.content}
-            oninput={handleContentChange}
-            placeholder="Start writing your note... Use [[note-title]] for cross-note links
+          <div class="edit-container">
+            <textarea
+              bind:this={contentTextarea}
+              bind:value={localContent}
+              class="content-textarea editor-text"
+              oninput={handleContentChange}
+              onpaste={handlePaste}
+              onkeydown={handleKeyDown}
+              placeholder="Start writing your note... 
 
-📝 Markdown features:
+✨ Shortcuts:
+• Ctrl+B: Bold
+• Ctrl+I: Italic
+• Ctrl+Shift+X: Strikethrough
+• Ctrl+`: Code
+• Ctrl+K: Link
+• Tab/Shift+Tab: Indent/Unindent lists
+
+📝 Features:
+• Drag & drop images
+• Paste images from clipboard
+• Type image URL and it will auto-convert
 • Headers: # H1, ## H2, ### H3
 • Links: [[note-title]] or [text](url)
-• Images: drag & drop or ![alt](url)
-• Code: ```language or inline `code`
-• Math: $inline$, $$block$$, block mode, LaTeX environments
+• Math: $inline$, $$block$$
 • Mermaid: ```mermaid
-• Lists: - bullet or 1. numbered
-• Tables: | col1 | col2 |
-• Checkboxes: - [ ] task"
-          ></textarea>
+• Lists: - bullet, 1. numbered, - [ ] task"
+            ></textarea>
+            {#if showOutline}
+              <div class="outline-sidebar">
+                <OutlineView 
+                  content={localContent}
+                  onHeaderClick={handleHeaderClick}
+                />
+              </div>
+            {/if}
+          </div>
       {/if}
       
       <!-- Drag overlay -->
@@ -347,9 +588,9 @@
     <div class="editor-footer">
       <div class="footer-left">
         <span class="word-count" title="Detailed statistics">
-          📊 {notesStore.currentNote.content.split(/\s+/).filter(w => w.length > 0).length} words · 
-          {notesStore.currentNote.content.length} characters · 
-          {notesStore.currentNote.content.replace(/\s/g, '').length} chars (no spaces)
+          📊 {localContent.split(/\s+/).filter(w => w.length > 0).length} words · 
+          {localContent.length} characters · 
+          {localContent.replace(/\s/g, '').length} chars (no spaces)
         </span>
         {#if backlinks.length > 0}
           <span class="backlinks-count" title="Notes linking to this note">
@@ -471,6 +712,28 @@
     -webkit-overflow-scrolling: touch; /* Better mobile scrolling */
   }
 
+  .outline-pane {
+    width: 250px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Edit container for single pane with optional outline */
+  .edit-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .outline-sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-left: 1px solid var(--border-color);
+  }
+
   /* Textarea in split view needs to be scrollable */
   .split-textarea {
     flex: 1;
@@ -547,6 +810,7 @@
     color: var(--text-secondary);
   }
 
+  .btn-outline,
   .btn-split,
   .btn-preview,
   .btn-pin,
@@ -559,6 +823,14 @@
     transition: all 0.2s;
     padding: 0.5rem;
     border-radius: 4px;
+  }
+
+  .btn-outline:hover,
+  .btn-outline.active {
+    opacity: 1;
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
   }
 
   .btn-split:hover,
