@@ -22,46 +22,8 @@ export interface NoteMetadata {
   charCountNoSpaces: number
 }
 
-// Attachment types
-export type AttachmentType = 'pdf' | 'csv' | 'image'
-
-export interface Attachment {
-  id?: number
-  noteId: number
-  type: AttachmentType
-  filename: string
-  fileBlob: Blob
-  fileSize: number
-  uploadedAt: number
-  metadata?: {
-    // For PDF
-    pageCount?: number
-    annotations?: PDFAnnotation[]
-    // For CSV
-    rowCount?: number
-    columnCount?: number
-    headers?: string[]
-  }
-}
-
-export interface PDFAnnotation {
-  id: string
-  pageNumber: number
-  type: 'highlight' | 'comment' | 'sticky'
-  content?: string
-  color?: string
-  position: {
-    x: number
-    y: number
-    width?: number
-    height?: number
-  }
-  createdAt: number
-}
-
 const db = new Dexie('MindNoteDB') as Dexie & {
   notes: EntityTable<Note, 'id'>
-  attachments: EntityTable<Attachment, 'id'>
 }
 
 // Schema declaration with compound indexes for better performance
@@ -82,12 +44,6 @@ db.version(2).stores({
 // Version 3: Add compound index for optimized queries
 db.version(3).stores({
   notes: '++id, title, createdAt, updatedAt, pinned, [pinned+updatedAt]'
-})
-
-// Version 4: Add attachments table
-db.version(4).stores({
-  notes: '++id, title, createdAt, updatedAt, pinned, [pinned+updatedAt]',
-  attachments: '++id, noteId, type, filename, uploadedAt'
 })
 
 export { db }
@@ -364,103 +320,6 @@ export const noteService = {
         ...stats
       }
     })
-  }
-}
-
-// Attachment service for PDF and CSV files
-export const attachmentService = {
-  // Add attachment to a note
-  async addAttachment(
-    noteId: number,
-    file: File,
-    type: AttachmentType,
-    metadata?: Attachment['metadata']
-  ): Promise<number> {
-    const attachment: Attachment = {
-      noteId,
-      type,
-      filename: file.name,
-      fileBlob: file,
-      fileSize: file.size,
-      uploadedAt: Date.now(),
-      metadata
-    }
-    
-    const id = await db.attachments.add(attachment)
-    return id as number
-  },
-
-  // Get all attachments for a note
-  async getAttachmentsByNote(noteId: number): Promise<Attachment[]> {
-    return await db.attachments
-      .where('noteId')
-      .equals(noteId)
-      .toArray()
-  },
-
-  // Get single attachment
-  async getAttachment(id: number): Promise<Attachment | undefined> {
-    return await db.attachments.get(id)
-  },
-
-  // Delete attachment
-  async deleteAttachment(id: number): Promise<void> {
-    await db.attachments.delete(id)
-  },
-
-  // Update attachment metadata (for annotations, etc.)
-  async updateAttachmentMetadata(
-    id: number,
-    metadata: Attachment['metadata']
-  ): Promise<void> {
-    await db.attachments.update(id, { metadata })
-  },
-
-  // Add PDF annotation
-  async addPDFAnnotation(
-    attachmentId: number,
-    annotation: PDFAnnotation
-  ): Promise<void> {
-    const attachment = await db.attachments.get(attachmentId)
-    if (!attachment || attachment.type !== 'pdf') {
-      throw new Error('Attachment not found or not a PDF')
-    }
-
-    const annotations = attachment.metadata?.annotations || []
-    annotations.push(annotation)
-
-    await db.attachments.update(attachmentId, {
-      metadata: {
-        ...attachment.metadata,
-        annotations
-      }
-    })
-  },
-
-  // Delete PDF annotation
-  async deletePDFAnnotation(
-    attachmentId: number,
-    annotationId: string
-  ): Promise<void> {
-    const attachment = await db.attachments.get(attachmentId)
-    if (!attachment || attachment.type !== 'pdf') return
-
-    const annotations = attachment.metadata?.annotations?.filter(
-      a => a.id !== annotationId
-    ) || []
-
-    await db.attachments.update(attachmentId, {
-      metadata: {
-        ...attachment.metadata,
-        annotations
-      }
-    })
-  },
-
-  // Get total storage used by attachments
-  async getStorageUsed(): Promise<number> {
-    const attachments = await db.attachments.toArray()
-    return attachments.reduce((total, att) => total + att.fileSize, 0)
   }
 }
 

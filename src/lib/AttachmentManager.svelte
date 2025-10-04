@@ -1,7 +1,5 @@
 <script lang="ts">
   import { attachmentService, type Attachment, type AttachmentType } from './db'
-  import PDFViewer from './PDFViewer.svelte'
-  import CSVViewer from './CSVViewer.svelte'
 
   interface Props {
     noteId: number
@@ -35,20 +33,14 @@
     isLoading = true
 
     try {
-      let type: AttachmentType
-      let metadata: Attachment['metadata'] = {}
-
-      // Determine type from file extension
-      if (file.name.toLowerCase().endsWith('.pdf')) {
-        type = 'pdf'
-      } else if (file.name.toLowerCase().endsWith('.csv')) {
-        type = 'csv'
-      } else if (file.type.startsWith('image/')) {
-        type = 'image'
-      } else {
-        alert('Unsupported file type. Please upload PDF, CSV, or image files.')
+      // Only support images
+      if (!file.type.startsWith('image/')) {
+        alert('Only image files are supported (PNG, JPG, GIF, etc.)')
         return
       }
+
+      const type: AttachmentType = 'image'
+      const metadata: Attachment['metadata'] = {}
 
       await attachmentService.addAttachment(noteId, file, type, metadata)
       await loadAttachments()
@@ -87,12 +79,7 @@
   }
 
   function getFileIcon(type: AttachmentType): string {
-    switch (type) {
-      case 'pdf': return '📄'
-      case 'csv': return '📊'
-      case 'image': return '🖼️'
-      default: return '📎'
-    }
+    return '️'
   }
 
   async function downloadAttachment(attachment: Attachment) {
@@ -123,9 +110,9 @@
 
       {#if attachments.length === 0}
         <div class="empty-state">
-          <p>No attachments yet</p>
+          <p>No images yet</p>
           <button onclick={() => showUploadDialog = true}>
-            Upload PDF or CSV
+            Upload Image
           </button>
         </div>
       {:else}
@@ -138,16 +125,8 @@
               <div class="attachment-info">
                 <h4>{attachment.filename}</h4>
                 <p class="file-meta">
-                  {attachment.type.toUpperCase()} • {formatFileSize(attachment.fileSize)}
+                  {formatFileSize(attachment.fileSize)}
                 </p>
-                {#if attachment.metadata?.pageCount}
-                  <p class="file-meta">{attachment.metadata.pageCount} pages</p>
-                {/if}
-                {#if attachment.metadata?.rowCount}
-                  <p class="file-meta">
-                    {attachment.metadata.rowCount} rows × {attachment.metadata.columnCount} cols
-                  </p>
-                {/if}
               </div>
               <div class="attachment-actions">
                 <button
@@ -186,12 +165,12 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="upload-dialog" onclick={(e) => e.stopPropagation()}>
-          <h3>Upload File</h3>
-          <p>Supported formats: PDF, CSV, Images</p>
+          <h3>Upload Image</h3>
+          <p>Supported formats: PNG, JPG, GIF, WebP, SVG</p>
           
           <input
             type="file"
-            accept=".pdf,.csv,image/*"
+            accept="image/*"
             onchange={handleFileUpload}
             disabled={isLoading}
           />
@@ -225,18 +204,12 @@
       </div>
 
       <div class="viewer-content">
-        {#if selectedAttachment.type === 'pdf'}
-          <PDFViewer attachment={selectedAttachment} />
-        {:else if selectedAttachment.type === 'csv'}
-          <CSVViewer attachment={selectedAttachment} />
-        {:else if selectedAttachment.type === 'image'}
-          <div class="image-viewer">
-            <img
-              src={URL.createObjectURL(selectedAttachment.fileBlob)}
-              alt={selectedAttachment.filename}
-            />
-          </div>
-        {/if}
+        <div class="image-viewer">
+          <img
+            src={URL.createObjectURL(selectedAttachment.fileBlob)}
+            alt={selectedAttachment.filename}
+          />
+        </div>
       </div>
     </div>
   {/if}

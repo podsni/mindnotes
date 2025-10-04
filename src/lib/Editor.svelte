@@ -3,7 +3,6 @@
   import { notesStore, uiStore } from './store.svelte'
   import { router } from './router'
   import MarkdownPreview from './MarkdownPreview.svelte'
-  import AttachmentManager from './AttachmentManager.svelte'
   import { noteService, type NoteMetadata } from './db'
 
   interface Props {
@@ -17,7 +16,6 @@
   let previewMode = $state(false)
   let splitView = $state(false)
   let backlinks = $state<NoteMetadata[]>([])
-  let activeTab: 'editor' | 'attachments' = $state('editor')
   let isDragging = $state(false)
   
   // Scroll sync for split view
@@ -268,22 +266,7 @@
     </div>
 
     <!-- Tab Navigation -->
-    <div class="editor-tabs">
-      <button
-        class="tab-btn"
-        class:active={activeTab === 'editor'}
-        onclick={() => activeTab = 'editor'}
-      >
-        📝 Note
-      </button>
-      <button
-        class="tab-btn"
-        class:active={activeTab === 'attachments'}
-        onclick={() => activeTab = 'attachments'}
-      >
-        📎 Attachments
-      </button>
-    </div>
+
     
     <div 
       class="editor-content" 
@@ -295,9 +278,8 @@
       role="application"
       aria-label="Note editor with drag and drop support"
     >
-      {#if activeTab === 'editor'}
-        {#if previewMode}
-          <MarkdownPreview content={notesStore.currentNote.content} mode="full" />
+      {#if previewMode}
+        <MarkdownPreview content={notesStore.currentNote.content} mode="full" />
         {:else if splitView}
           <!-- Split view: editor on left, preview on right -->
           <div class="split-container">
@@ -350,9 +332,6 @@
 • Tables: | col1 | col2 |
 • Checkboxes: - [ ] task"
           ></textarea>
-        {/if}
-      {:else}
-        <AttachmentManager noteId={parseInt(id)} />
       {/if}
       
       <!-- Drag overlay -->
@@ -448,36 +427,6 @@
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
-  }
-
-  /* Tab navigation */
-  .editor-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--card-bg);
-    padding: 0 2rem;
-  }
-
-  .tab-btn {
-    padding: 0.75rem 1.5rem;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 0.95rem;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-
-  .tab-btn:hover {
-    color: var(--text-color);
-    background: var(--hover-bg);
-  }
-
-  .tab-btn.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
   }
 
   .editor-content {
