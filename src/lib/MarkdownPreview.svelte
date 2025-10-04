@@ -14,6 +14,10 @@
   let viewerSvg: string = $state('')
   let showViewer: boolean = $state(false)
   
+  // ⚡ Realtime: Track previous content for smart diffing
+  let prevContent: string = $state('')
+  let mermaidDebounceTimer: number | undefined = $state()
+  
   // Update notes cache for cross-linking
   $effect(() => {
     setNotesCache(notesStore.notes)
@@ -25,15 +29,28 @@
     return sanitizeHtml(parsed)
   })
   
-  // Render Mermaid diagrams after HTML is inserted
+  // ⚡ Realtime: Smart Mermaid rendering with minimal debounce (100ms)
   $effect(() => {
-    if (previewContainer) {
-      // Use setTimeout to ensure DOM is updated
-      setTimeout(() => {
+    if (previewContainer && content !== prevContent) {
+      prevContent = content
+      
+      // Clear previous timer
+      if (mermaidDebounceTimer) {
+        clearTimeout(mermaidDebounceTimer)
+      }
+      
+      // Debounce Mermaid rendering (100ms) to prevent spam
+      mermaidDebounceTimer = window.setTimeout(() => {
         if (previewContainer) {
-          renderMermaidDiagrams(previewContainer, openViewer)
+          // Use requestIdleCallback for non-blocking rendering
+          const idleCallback = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1))
+          idleCallback(() => {
+            if (previewContainer) {
+              renderMermaidDiagrams(previewContainer, openViewer)
+            }
+          })
         }
-      }, 50)
+      }, 100) // 100ms debounce - fast but prevents lag
     }
   })
   

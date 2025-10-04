@@ -24,26 +24,49 @@ async function loadMermaid() {
   return mermaidModule.default
 }
 
-// ⚡ Performance Optimization: Markdown parsing cache
-const markdownCache = new Map<string, string>()
-const MAX_CACHE_SIZE = 100 // Limit cache size to prevent memory issues
+// ⚡ Performance Optimization: Aggressive markdown parsing cache with TTL
+const markdownCache = new Map<string, { html: string, timestamp: number }>()
+const MAX_CACHE_SIZE = 200 // Increased cache size
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes TTL
+
+// ⚡ Realtime: Track content changes for incremental updates
+let lastParsedContent = ''
+let lastParsedResult = ''
 
 function getCachedOrParse(content: string, parser: () => string): string {
-  if (markdownCache.has(content)) {
-    return markdownCache.get(content)!
+  // ⚡ Instant return for unchanged content (realtime optimization)
+  if (content === lastParsedContent) {
+    return lastParsedResult
+  }
+  
+  const cached = markdownCache.get(content)
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+    lastParsedContent = content
+    lastParsedResult = cached.html
+    return cached.html
   }
   
   const result = parser()
   
   // LRU-like cache eviction
   if (markdownCache.size >= MAX_CACHE_SIZE) {
-    const firstKey = markdownCache.keys().next().value
-    if (firstKey !== undefined) {
-      markdownCache.delete(firstKey)
+    // Remove oldest entry
+    let oldestKey: string | undefined
+    let oldestTime = Infinity
+    for (const [key, value] of markdownCache.entries()) {
+      if (value.timestamp < oldestTime) {
+        oldestTime = value.timestamp
+        oldestKey = key
+      }
+    }
+    if (oldestKey) {
+      markdownCache.delete(oldestKey)
     }
   }
   
-  markdownCache.set(content, result)
+  markdownCache.set(content, { html: result, timestamp: Date.now() })
+  lastParsedContent = content
+  lastParsedResult = result
   return result
 }
 
@@ -97,6 +120,10 @@ export function setNotesCache(notes: NoteLinkData[]) {
   notesCache = notes
 }
 
+// ⚡ Performance: Code highlighting cache
+const highlightCache = new Map<string, string>()
+const MAX_HIGHLIGHT_CACHE = 100
+
 // Override code rendering for Mermaid diagrams
 renderer.code = (code) => {
   const codeStr = typeof code === 'string' ? code : code.text
@@ -109,6 +136,12 @@ renderer.code = (code) => {
     return `<div class="mermaid-diagram" data-mermaid-id="${id}">${codeStr}</div>`
   }
   
+  // ⚡ Performance: Check cache first
+  const cacheKey = `${lang}:${codeStr}`
+  if (highlightCache.has(cacheKey)) {
+    return highlightCache.get(cacheKey)!
+  }
+  
   // Handle syntax highlighting for code blocks
   let highlighted = codeStr
   if (lang && hljs.getLanguage(lang)) {
@@ -118,10 +151,53 @@ renderer.code = (code) => {
       console.error('Highlight error:', err)
     }
   } else {
-    highlighted = hljs.highlightAuto(codeStr).value
+    // ⚡ Auto-detect only for small code blocks (< 500 chars)
+    if (codeStr.length < 500) {
+      highlighted = hljs.highlightAuto(codeStr).value
+    }
   }
   
-  return `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
+  const result = `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
+  
+  // Cache the result
+  if (highlightCache.size >= MAX_HIGHLIGHT_CACHE) {
+    const firstKey = highlightCache.keys().next().value
+    if (firstKey) highlightCache.delete(firstKey)
+  }
+  highlightCache.set(cacheKey, result)
+  
+  return result
+}
+
+// ⚡ Performance: LaTeX rendering cache
+const latexCache = new Map<string, string>()
+const MAX_LATEX_CACHE = 200
+
+function renderLatexCached(latex: string, displayMode: boolean, trust: boolean = false): string {
+  const cacheKey = `${displayMode ? 'd' : 'i'}:${trust ? 't' : 'f'}:${latex}`
+  
+  if (latexCache.has(cacheKey)) {
+    return latexCache.get(cacheKey)!
+  }
+  
+  try {
+    const rendered = katex.renderToString(latex, {
+      displayMode,
+      throwOnError: false,
+      trust
+    })
+    
+    // Cache the result
+    if (latexCache.size >= MAX_LATEX_CACHE) {
+      const firstKey = latexCache.keys().next().value
+      if (firstKey) latexCache.delete(firstKey)
+    }
+    latexCache.set(cacheKey, rendered)
+    
+    return rendered
+  } catch (err) {
+    return `<span class="math-error">Math Error: ${err}</span>`
+  }
 }
 
 // Process LaTeX math expressions
@@ -148,53 +224,23 @@ function processMath(text: string): string {
   )
   
   let replaced = text.replace(latexEnvRegex, (_match: string, env: string, content: string) => {
-    try {
-      // Reconstruct full LaTeX with environment
-      const fullLatex = `\\begin{${env}}${content}\\end{${env}}`
-      return katex.renderToString(fullLatex, {
-        displayMode: true,
-        throwOnError: false,
-        trust: true // Allow \begin, \end commands
-      })
-    } catch (err) {
-      return `<div class="math-error">LaTeX Error in \\begin{${env}}: ${err}</div>`
-    }
+    const fullLatex = `\\begin{${env}}${content}\\end{${env}}`
+    return renderLatexCached(fullLatex, true, true)
   })
   
   // Handle block math mode \[...\]
   replaced = replaced.replace(/\\\[([\s\S]*?)\\\]/g, (_match: string, math: string) => {
-    try {
-      return katex.renderToString(math.trim(), {
-        displayMode: true,
-        throwOnError: false
-      })
-    } catch (err) {
-      return `<span class="math-error">Math Error: ${math}</span>`
-    }
+    return renderLatexCached(math.trim(), true, false)
   })
   
   // Handle block math $$...$$
   replaced = replaced.replace(/\$\$([\s\S]*?)\$\$/g, (_match: string, math: string) => {
-    try {
-      return katex.renderToString(math.trim(), {
-        displayMode: true,
-        throwOnError: false
-      })
-    } catch (err) {
-      return `<span class="math-error">Math Error: ${math}</span>`
-    }
+    return renderLatexCached(math.trim(), true, false)
   })
   
   // Handle inline math $...$
   replaced = replaced.replace(/\$([^\$]+)\$/g, (_match: string, math: string) => {
-    try {
-      return katex.renderToString(math.trim(), {
-        displayMode: false,
-        throwOnError: false
-      })
-    } catch (err) {
-      return `<span class="math-error">Math Error: ${math}</span>`
-    }
+    return renderLatexCached(math.trim(), false, false)
   })
   
   return replaced
