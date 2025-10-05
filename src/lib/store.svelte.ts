@@ -16,13 +16,61 @@ class NotesStore {
   // Cache for search results
   private searchCache = new Map<string, NoteMetadata[]>()
   private cacheTimeout = 5 * 60 * 1000 // 5 minutes
+  private noteIndex = new Map<number, number>()
+
+  private toMetadata(note: Note): NoteMetadata {
+    const content = note.content || ''
+    const wordCount = content.trim() ? content.split(/\s+/).filter(w => w.length > 0).length : 0
+    const charCount = content.length
+    const charCountNoSpaces = content.replace(/\s/g, '').length
+
+    return {
+      id: note.id!,
+      title: note.title,
+      preview: content.substring(0, 150).trim(),
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+      pinned: note.pinned,
+      wordCount,
+      charCount,
+      charCountNoSpaces
+    }
+  }
+
+  private sortNotes(notes: NoteMetadata[]): NoteMetadata[] {
+    return [...notes].sort((a, b) => {
+      if (a.pinned !== b.pinned) {
+        return a.pinned ? -1 : 1
+      }
+      return b.updatedAt - a.updatedAt
+    })
+  }
+
+  private mergeMetadata(existing: NoteMetadata[], incoming: NoteMetadata[], reset = false): NoteMetadata[] {
+    const base = reset ? incoming : [...existing, ...incoming]
+    const dedup = new Map<number, NoteMetadata>()
+
+    for (const note of base) {
+      dedup.set(note.id, note)
+    }
+
+    return this.sortNotes([...dedup.values()])
+  }
+
+  private applyNotes(notes: NoteMetadata[]) {
+    this.notes = notes
+    this.noteIndex.clear()
+    notes.forEach((note, idx) => {
+      this.noteIndex.set(note.id, idx)
+    })
+  }
 
   // Load notes with incremental loading (initial batch)
   async loadNotes(reset: boolean = false) {
     if (reset) {
       this.currentPage = 0
       this.hasMore = true
-      this.notes = []
+      this.applyNotes([])
     }
     
     if (!this.hasMore && !reset) return
@@ -31,25 +79,15 @@ class NotesStore {
     try {
       const offset = this.currentPage * this.pageSize
       const metadata = await noteService.getNotesMetadata(this.pageSize, offset)
-      
-      // Sort: pinned first, then by updatedAt
-      const sorted = metadata.sort((a, b) => {
-        if (a.pinned && !b.pinned) return -1
-        if (!a.pinned && b.pinned) return 1
-        return b.updatedAt - a.updatedAt
-      })
-      
-      if (reset) {
-        this.notes = sorted
-      } else {
-        this.notes = [...this.notes, ...sorted]
-      }
+      const merged = this.mergeMetadata(this.notes, metadata, reset)
+      this.applyNotes(merged)
       
       this.hasMore = metadata.length === this.pageSize
       this.currentPage++
       
-      // Update total count
-      this.totalNotes = await noteService.getNotesCount()
+      if (reset || this.totalNotes === 0) {
+        this.totalNotes = await noteService.getNotesCount()
+      }
     } catch (error) {
       console.error('Failed to load notes:', error)
     } finally {
@@ -78,7 +116,23 @@ class NotesStore {
   async createNote(title: string, content: string = '') {
     try {
       const id = await noteService.createNote(title, content)
-      await this.loadNotes(true) // Refresh list from start
+      this.searchCache.clear()
+
+      if (this.searchQuery.trim()) {
+        this.searchQuery = ''
+        await this.loadNotes(true)
+      } else {
+        const newNote = await noteService.getNote(id)
+        if (newNote) {
+          const metadata = this.toMetadata(newNote)
+          this.currentNote = newNote
+          const merged = this.mergeMetadata(this.notes, [metadata])
+          const loadedItems = this.currentPage > 0 ? this.currentPage * this.pageSize : this.pageSize
+          const limited = this.hasMore && merged.length > loadedItems ? merged.slice(0, loadedItems) : merged
+          this.applyNotes(limited)
+        }
+        this.totalNotes++
+      }
       return id
     } catch (error) {
       console.error('Failed to create note:', error)
@@ -96,14 +150,32 @@ class NotesStore {
     }
     
     // Update metadata in list immediately (if exists)
-    const noteIndex = this.notes.findIndex(n => n.id === id)
-    if (noteIndex !== -1 && updates.title) {
-      this.notes[noteIndex].title = updates.title
-    }
-    if (noteIndex !== -1 && updates.content) {
-      this.notes[noteIndex].preview = updates.content.substring(0, 150).trim()
-      this.notes[noteIndex].wordCount = updates.content.split(/\s+/).filter(w => w.length > 0).length
-      this.notes[noteIndex].updatedAt = Date.now()
+    const noteIndex = this.noteIndex.get(id) ?? -1
+    if (noteIndex !== -1) {
+      const updatedAt = Date.now()
+      const updatedList = [...this.notes]
+      const metadata = { ...updatedList[noteIndex] }
+
+      if (updates.title !== undefined) {
+        metadata.title = updates.title
+      }
+      if (updates.content !== undefined) {
+        metadata.preview = updates.content.substring(0, 150).trim()
+        const words = updates.content.trim()
+          ? updates.content.split(/\s+/).filter(w => w.length > 0).length
+          : 0
+        metadata.wordCount = words
+        metadata.charCount = updates.content.length
+        metadata.charCountNoSpaces = updates.content.replace(/\s/g, '').length
+      }
+      if (updates.pinned !== undefined) {
+        metadata.pinned = updates.pinned
+      }
+
+      metadata.updatedAt = updatedAt
+      updatedList[noteIndex] = metadata
+      const resorted = this.sortNotes(updatedList)
+      this.applyNotes(resorted)
     }
     
     // Clear previous timeout
@@ -126,15 +198,18 @@ class NotesStore {
   async deleteNote(id: number) {
     try {
       // Remove from local state immediately
-      this.notes = this.notes.filter(n => n.id !== id)
+      const remaining = this.notes.filter(n => n.id !== id)
+      this.applyNotes(remaining)
       
       if (this.currentNote?.id === id) {
         this.currentNote = null
       }
+
+      this.searchCache.clear()
       
       // Persist deletion
       await noteService.deleteNote(id)
-      this.totalNotes--
+      this.totalNotes = Math.max(0, this.totalNotes - 1)
     } catch (error) {
       console.error('Failed to delete note:', error)
       // Revert on error
@@ -164,18 +239,19 @@ class NotesStore {
         // Check cache first
         const cached = this.searchCache.get(query)
         if (cached) {
-          this.notes = cached
+          this.applyNotes(cached)
           return
         }
         
         // Perform search
         const results = await noteService.searchNotes(query, 100)
+        const sortedResults = this.sortNotes(results)
         
         // Cache results
-        this.searchCache.set(query, results)
+        this.searchCache.set(query, sortedResults)
         setTimeout(() => this.searchCache.delete(query), this.cacheTimeout)
         
-        this.notes = results
+        this.applyNotes(sortedResults)
       } catch (error) {
         console.error('Failed to search notes:', error)
       }
@@ -190,14 +266,31 @@ class NotesStore {
   // Toggle pin
   async togglePin(id: number) {
     try {
-      await noteService.togglePin(id)
-      await this.loadNotes()
-      // Update current note if it's the one being pinned
+      const index = this.noteIndex.get(id) ?? -1
+      const nextPinned = index !== -1 ? !this.notes[index].pinned : undefined
+
+      if (index !== -1 && nextPinned !== undefined) {
+        const updatedAt = Date.now()
+        const updatedList = [...this.notes]
+        updatedList[index] = {
+          ...updatedList[index],
+          pinned: nextPinned,
+          updatedAt
+        }
+        const resorted = this.sortNotes(updatedList)
+        this.applyNotes(resorted)
+      }
+
       if (this.currentNote?.id === id) {
         this.currentNote.pinned = !this.currentNote.pinned
+        this.currentNote.updatedAt = Date.now()
       }
+
+      this.searchCache.clear()
+      await noteService.togglePin(id)
     } catch (error) {
       console.error('Failed to toggle pin:', error)
+      await this.loadNotes(true)
     }
   }
 
@@ -222,6 +315,7 @@ class NotesStore {
     try {
       const text = await file.text()
       const imported = await noteService.importNotes(text)
+      this.searchCache.clear()
       await this.loadNotes()
       return imported
     } catch (error) {

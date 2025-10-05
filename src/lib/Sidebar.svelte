@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import { notesStore, uiStore } from './store.svelte'
   import { router } from './router'
-  import type { Note } from './db'
   import VirtualList from 'svelte-virtual-list'
   import Settings from './Settings.svelte'
 
@@ -10,6 +10,9 @@
   let touchCurrentX = $state(0)
   let isDragging = $state(false)
   let listContainer: HTMLDivElement | undefined = $state()
+  let scrollFrame = 0
+
+  const VIRTUAL_ITEM_HEIGHT = 96
 
   const handleSearch = (e: Event) => {
     const target = e.target as HTMLInputElement
@@ -82,15 +85,26 @@
   // Infinite scroll handler
   const handleScroll = (e: Event) => {
     const target = e.target as HTMLElement
-    const scrollTop = target.scrollTop
-    const scrollHeight = target.scrollHeight
-    const clientHeight = target.clientHeight
-    
-    // Load more when scrolled to 80% of the list
-    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      notesStore.loadMoreNotes()
+
+    if (scrollFrame) {
+      cancelAnimationFrame(scrollFrame)
     }
+
+    scrollFrame = requestAnimationFrame(() => {
+      const { scrollTop, scrollHeight, clientHeight } = target
+      if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+        void notesStore.loadMoreNotes()
+      }
+      scrollFrame = 0
+    })
   }
+
+  onDestroy(() => {
+    if (scrollFrame) {
+      cancelAnimationFrame(scrollFrame)
+      scrollFrame = 0
+    }
+  })
 
   // Swipe gesture handlers - only for safe areas
   const handleTouchStart = (e: TouchEvent) => {
@@ -196,7 +210,7 @@
       </div>
     {:else if notesStore.notes.length > 50}
       <!-- Use virtual list for large datasets (>50 notes) - OPTIMIZED -->
-      <VirtualList items={notesStore.notes} let:item height="calc(100vh - 250px)">
+      <VirtualList items={notesStore.notes} let:item height="calc(100vh - 250px)" itemHeight={VIRTUAL_ITEM_HEIGHT}>
         {#if item.id}
           <a href="#/note/{item.id}" class="note-item" class:pinned={item.pinned} onclick={handleNoteClick}>
             <div class="note-content">
