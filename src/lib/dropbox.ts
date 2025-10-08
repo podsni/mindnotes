@@ -98,9 +98,12 @@ class DropboxService {
         'Authorization': `Bearer ${this._accessToken}`,
         'Content-Type': 'application/json',
       },
+      body: 'null', // Dropbox API requires 'null' string as body
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Dropbox API error:', errorText);
       throw new Error('Failed to get user info');
     }
 
@@ -164,26 +167,19 @@ class DropboxService {
   }
 
   /**
-   * Listen for OAuth callback in popup
+   * Listen for OAuth callback via postMessage
    */
   private listenForAuthCallback(popup: Window | null): void {
-    const checkPopup = setInterval(async () => {
-      if (!popup || popup.closed) {
-        clearInterval(checkPopup);
+    // Listen for postMessage from callback page
+    const messageHandler = async (event: MessageEvent) => {
+      // Verify origin
+      if (event.origin !== window.location.origin) {
         return;
       }
 
-      try {
-        // Check if popup has redirected to our callback URL
-        const popupUrl = popup.location.href;
-        if (popupUrl.includes('/dropbox-callback')) {
-          clearInterval(checkPopup);
-          
-          // Extract token from hash
-          const hash = new URL(popupUrl).hash.substring(1);
-          const params = new URLSearchParams(hash);
-          const accessToken = params.get('access_token');
-          const state = params.get('state');
+      if (event.data.type === 'dropbox-auth-success') {
+        try {
+          const { accessToken, state } = event.data;
 
           // Verify state
           const savedState = sessionStorage.getItem('dropbox_auth_state');
@@ -200,23 +196,35 @@ class DropboxService {
             const userInfo = await this.getUserInfo();
             this.saveToken(accessToken, userInfo.email);
             
-            popup.close();
+            popup?.close();
           }
+        } catch (error) {
+          console.error('Auth callback error:', error);
+          popup?.close();
+        } finally {
+          window.removeEventListener('message', messageHandler);
         }
-      } catch (error) {
-        // Cross-origin errors are expected, ignore them
-        if (error instanceof DOMException) {
-          return;
-        }
-        console.error('Auth callback error:', error);
-        clearInterval(checkPopup);
+      } else if (event.data.type === 'dropbox-auth-error') {
+        console.error('Dropbox auth error:', event.data.error);
         popup?.close();
+        window.removeEventListener('message', messageHandler);
       }
-    }, 500);
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    // Also check if popup closes without auth
+    const checkClosed = setInterval(() => {
+      if (!popup || popup.closed) {
+        clearInterval(checkClosed);
+        window.removeEventListener('message', messageHandler);
+      }
+    }, 1000);
 
     // Timeout after 5 minutes
     setTimeout(() => {
-      clearInterval(checkPopup);
+      clearInterval(checkClosed);
+      window.removeEventListener('message', messageHandler);
       popup?.close();
     }, 300000);
   }
@@ -234,6 +242,7 @@ class DropboxService {
             'Authorization': `Bearer ${this._accessToken}`,
             'Content-Type': 'application/json',
           },
+          body: 'null',
         });
       } catch (error) {
         console.error('Failed to revoke Dropbox token:', error);

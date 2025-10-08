@@ -56,28 +56,55 @@
 
   <script>
     // This page is opened by the popup window after Dropbox OAuth redirect
-    // The parent window will read the URL hash and extract the access token
-    // Then close this window automatically
+    // Extract token from URL and send it to parent window via postMessage
     
     // Check if we're in a popup
     if (window.opener) {
-      // Show success message briefly
-      setTimeout(() => {
-        document.querySelector('.spinner').style.display = 'none';
-        document.querySelector('h1').textContent = 'Berhasil!';
-        document.querySelector('p').textContent = 'Login ke Dropbox berhasil';
+      try {
+        // Extract token from hash
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get('access_token');
+        const state = params.get('state');
+        const error = params.get('error');
         
-        const successIcon = document.createElement('div');
-        successIcon.className = 'success';
-        successIcon.textContent = '✓';
-        document.querySelector('.container').insertBefore(
-          successIcon,
-          document.querySelector('h1')
-        );
-      }, 500);
-
-      // The parent window polling will detect we're on callback URL
-      // and will close this window after extracting the token
+        if (error) {
+          // Send error to parent
+          window.opener.postMessage({
+            type: 'dropbox-auth-error',
+            error: error
+          }, window.location.origin);
+        } else if (accessToken && state) {
+          // Send token to parent via postMessage (safe from COOP)
+          window.opener.postMessage({
+            type: 'dropbox-auth-success',
+            accessToken: accessToken,
+            state: state
+          }, window.location.origin);
+          
+          // Show success message
+          document.querySelector('.spinner').style.display = 'none';
+          document.querySelector('h1').textContent = 'Berhasil!';
+          document.querySelector('p').textContent = 'Login ke Dropbox berhasil';
+          
+          const successIcon = document.createElement('div');
+          successIcon.className = 'success';
+          successIcon.textContent = '✓';
+          document.querySelector('.container').insertBefore(
+            successIcon,
+            document.querySelector('h1')
+          );
+          
+          // Close after 1 second
+          setTimeout(() => {
+            window.close();
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Callback error:', error);
+        document.querySelector('h1').textContent = 'Error';
+        document.querySelector('p').textContent = error.message;
+      }
     } else {
       // Not in popup, redirect to main app
       document.querySelector('h1').textContent = 'Redirecting...';
