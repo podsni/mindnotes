@@ -2,6 +2,7 @@
   import ThemeSelector from './ThemeSelector.svelte'
   import FontSelector from './FontSelector.svelte'
   import ExportImport from './ExportImport.svelte'
+  import GoogleDriveSync from './GoogleDriveSync.svelte'
 
   let isOpen = $state(false)
 
@@ -80,6 +81,11 @@
       <!-- Export/Import -->
       <div class="settings-section">
         <ExportImport />
+      </div>
+
+      <!-- Google Drive Sync -->
+      <div class="settings-section">
+        <GoogleDriveSync />
       </div>
     </div>
   {/if}

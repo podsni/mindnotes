@@ -310,14 +310,47 @@ class NotesStore {
     }
   }
 
-  // Import notes
-  async importNotes(file: File) {
+  // Import notes from file
+  async importNotesFromFile(file: File) {
     try {
       const text = await file.text()
       const imported = await noteService.importNotes(text)
       this.searchCache.clear()
-      await this.loadNotes()
+      await this.loadNotes(true)
       return imported
+    } catch (error) {
+      console.error('Failed to import notes:', error)
+      throw error
+    }
+  }
+
+  // Import notes from array (for Google Drive restore)
+  async importNotes(notes: Note[], mode: 'merge' | 'replace' = 'merge') {
+    try {
+      if (mode === 'replace') {
+        // Clear all existing notes first
+        const existingNotes = await noteService.getAllNotes()
+        for (const note of existingNotes) {
+          if (note.id) {
+            await noteService.deleteNote(note.id)
+          }
+        }
+      }
+
+      // Import new notes
+      for (const note of notes) {
+        await noteService.createNote(
+          note.title,
+          note.content,
+          note.pinned,
+          note.createdAt,
+          note.updatedAt
+        )
+      }
+
+      this.searchCache.clear()
+      await this.loadNotes(true)
+      return notes.length
     } catch (error) {
       console.error('Failed to import notes:', error)
       throw error

@@ -102,13 +102,13 @@ export const noteService = {
   },
 
   // Create new note
-  async createNote(title: string, content: string = '', pinned: boolean = false): Promise<number> {
+  async createNote(title: string, content: string = '', pinned: boolean = false, createdAt?: number, updatedAt?: number): Promise<number> {
     const now = Date.now()
     const id = await db.notes.add({
       title,
       content,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: createdAt ?? now,
+      updatedAt: updatedAt ?? now,
       pinned
     })
     return id as number

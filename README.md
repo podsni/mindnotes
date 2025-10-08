@@ -10,6 +10,8 @@ A fast, offline-first note-taking application built with Svelte 5 + Vite + TypeS
 - 💾 **Auto-save**: Debounced auto-save (500ms) while you type
 - 🔍 **Search**: Fast full-text search across all notes
 - 🎨 **Dark Mode**: Clean, modern dark interface
+- ☁️ **Google Drive Sync**: Backup and restore notes to/from Google Drive
+- 🔐 **Secure Authentication**: OAuth 2.0 integration with Google
 
 ## 🚀 Quick Start
 
@@ -35,14 +37,19 @@ pnpm preview
 ```
 src/
 ├── lib/
-│   ├── db.ts           # IndexedDB + Dexie.js setup
-│   ├── store.ts        # Global state management (Svelte 5 runes)
-│   ├── Sidebar.svelte  # Note list with search
-│   ├── Editor.svelte   # Note editor with auto-save
-│   └── Home.svelte     # Welcome screen
-├── App.svelte          # Root component with routing
-├── main.ts             # App entry point
-└── app.css             # Global styles
+│   ├── db.ts                  # IndexedDB + Dexie.js setup
+│   ├── store.svelte.ts        # Global state management (Svelte 5 runes)
+│   ├── router.ts              # Client-side routing
+│   ├── googleDrive.ts         # Google Drive API integration
+│   ├── Sidebar.svelte         # Note list with search
+│   ├── Editor.svelte          # Note editor with auto-save
+│   ├── Home.svelte            # Welcome screen
+│   ├── Settings.svelte        # Settings panel
+│   ├── GoogleDriveSync.svelte # Google Drive backup/restore UI
+│   └── ...                    # Other components
+├── App.svelte                 # Root component with routing
+├── main.ts                    # App entry point
+└── app.css                    # Global styles
 ```
 
 ## 🏗️ Architecture
@@ -58,6 +65,25 @@ src/
 - **Why not SvelteKit?** For simpler architecture without built-in routing/SSR overhead
 - **Client-side first**: All persistence and routing handled client-side
 - **Performance focus**: Instant navigation + compile-time optimizations
+
+## ☁️ Google Drive Integration
+
+MindNote supports backing up and syncing your notes with Google Drive!
+
+### Setup
+
+1. Create a Google Cloud Project and enable Google Drive API
+2. Create OAuth 2.0 credentials
+3. Configure the credentials in `src/lib/googleDrive.ts`
+
+For detailed setup instructions, see [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md)
+
+### Usage
+
+1. Open Settings in the app
+2. Navigate to "Google Drive Sync"
+3. Sign in with your Google account
+4. Backup or restore your notes
 
 ## 📖 Development
 

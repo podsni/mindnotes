@@ -60,7 +60,7 @@
     const file = input.files?.[0]
     if (file) {
       try {
-        const count = await notesStore.importNotes(file)
+        const count = await notesStore.importNotesFromFile(file)
         alert(`Successfully imported ${count} notes!`)
       } catch (error) {
         alert('Failed to import notes. Please check the file format.')
