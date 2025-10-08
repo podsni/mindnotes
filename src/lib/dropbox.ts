@@ -344,6 +344,11 @@ class DropboxService {
         }),
       });
 
+      // 409 means file not found - this is expected on first use
+      if (response.status === 409) {
+        return false;
+      }
+
       return response.ok;
     } catch (error) {
       return false;
@@ -369,6 +374,11 @@ class DropboxService {
           path: this.BACKUP_FILENAME,
         }),
       });
+
+      // 409 means file not found - return null instead of throwing
+      if (response.status === 409) {
+        return null;
+      }
 
       if (!response.ok) {
         return null;
