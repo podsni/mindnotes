@@ -92,18 +92,17 @@ class DropboxService {
       throw new Error('Not authenticated');
     }
 
+    // RPC endpoint - no body required when no parameters
     const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this._accessToken}`,
-        'Content-Type': 'application/json',
       },
-      body: 'null', // Dropbox API requires 'null' string as body
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Dropbox API error:', errorText);
+      console.error('Dropbox API error:', response.status, errorText);
       throw new Error('Failed to get user info');
     }
 
@@ -235,14 +234,12 @@ class DropboxService {
   async signOut(): Promise<void> {
     if (this._accessToken) {
       try {
-        // Revoke token
+        // Revoke token - RPC endpoint with no parameters
         await fetch('https://api.dropboxapi.com/2/auth/token/revoke', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this._accessToken}`,
-            'Content-Type': 'application/json',
           },
-          body: 'null',
         });
       } catch (error) {
         console.error('Failed to revoke Dropbox token:', error);
