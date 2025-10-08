@@ -356,6 +356,11 @@ class NotesStore {
       throw error
     }
   }
+
+  // Get all notes with full content (for backup/export)
+  async getAllFullNotes(): Promise<Note[]> {
+    return await noteService.getAllNotes()
+  }
 }
 
 // UI State Store for sidebar toggle, theme, etc

@@ -66,23 +66,32 @@ src/
 - **Client-side first**: All persistence and routing handled client-side
 - **Performance focus**: Instant navigation + compile-time optimizations
 
-## ☁️ Google Drive Integration
+## ☁️ Cloud Sync Integration
 
-MindNote supports backing up and syncing your notes with Google Drive!
+MindNote supports backing up and syncing your notes with cloud storage!
 
-### Setup
+### Google Drive
 
 1. Create a Google Cloud Project and enable Google Drive API
 2. Create OAuth 2.0 credentials
-3. Configure the credentials in `src/lib/googleDrive.ts`
+3. Configure in `.env.local`
 
-For detailed setup instructions, see [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md)
+**Setup Guide**: [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md)
+
+### Dropbox
+
+1. Create a Dropbox App
+2. Get your App Key
+3. Configure in `.env.local`
+
+**Setup Guide**: [DROPBOX_SETUP.md](./DROPBOX_SETUP.md)  
+**Quick Start**: [DROPBOX_QUICK_START.md](./DROPBOX_QUICK_START.md)
 
 ### Usage
 
 1. Open Settings in the app
-2. Navigate to "Google Drive Sync"
-3. Sign in with your Google account
+2. Navigate to "Google Drive Sync" or "Dropbox Sync"
+3. Sign in with your account
 4. Backup or restore your notes
 
 ## 📖 Development

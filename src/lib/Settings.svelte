@@ -3,6 +3,7 @@
   import FontSelector from './FontSelector.svelte'
   import ExportImport from './ExportImport.svelte'
   import GoogleDriveSync from './GoogleDriveSync.svelte'
+  import DropboxSync from './DropboxSync.svelte'
 
   let isOpen = $state(false)
 
@@ -86,6 +87,11 @@
       <!-- Google Drive Sync -->
       <div class="settings-section">
         <GoogleDriveSync />
+      </div>
+
+      <!-- Dropbox Sync -->
+      <div class="settings-section">
+        <DropboxSync />
       </div>
     </div>
   {/if}
