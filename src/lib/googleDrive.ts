@@ -54,9 +54,18 @@ class GoogleDriveService {
     if (this.isInitialized) return
 
     try {
-      // Load Google API script
-      await this.loadScript('https://accounts.google.com/gsi/client')
-      await this.loadScript('https://apis.google.com/js/api.js')
+      // Wait for Google API scripts to load (loaded via index.html)
+      await this.waitForGoogleAPI()
+
+      // Suppress COOP warnings from Google library (known issue, doesn't affect functionality)
+      const originalWarn = console.warn
+      console.warn = (...args: any[]) => {
+        const message = args[0]?.toString() || ''
+        if (message.includes('Cross-Origin-Opener-Policy') || message.includes('window.opener')) {
+          return // Suppress COOP warnings
+        }
+        originalWarn.apply(console, args)
+      }
 
       // Initialize token client for OAuth
       this.tokenClient = google.accounts.oauth2.initTokenClient({
@@ -124,7 +133,29 @@ class GoogleDriveService {
   }
 
   /**
-   * Load external script
+   * Wait for Google API scripts to be loaded (from index.html)
+   */
+  private waitForGoogleAPI(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Google API failed to load within 10 seconds'))
+      }, 10000)
+
+      const checkAPI = () => {
+        if (typeof google !== 'undefined' && typeof gapi !== 'undefined') {
+          clearTimeout(timeout)
+          resolve()
+        } else {
+          setTimeout(checkAPI, 100)
+        }
+      }
+      
+      checkAPI()
+    })
+  }
+
+  /**
+   * Load external script (deprecated - now loaded via index.html)
    */
   private loadScript(src: string): Promise<void> {
     return new Promise((resolve, reject) => {
